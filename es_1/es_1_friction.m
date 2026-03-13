@@ -52,7 +52,7 @@ figure; plot(t1,y1); title('y(t) with friction'); grid on;
 figure; plot(t1,x1); title('x(t) with friction'); grid on;
 
 
-% 6
+%5
 [mag,phase,w] = bode(sys_f);
 mag_db = 20*log10(squeeze(mag));
 
@@ -76,15 +76,15 @@ subplot(3,1,1); initial(sys_f, x0, 20); title('Continuous');
 subplot(3,1,2); initial(sysd1, x0, 20); title('Discrete f1');
 subplot(3,1,3); initial(sysd2, x0, 20); title('Discrete f2');
 
-% 7
-
+%6
+Kvec = 0:0.0001:6.1;   % tanti valori di K
 figure; 
-rlocus(sys_f); 
+rlocus(sys_f,Kvec); 
 grid on; 
 title('Root Locus sistema con attrito');
 
-Kvec = linspace(0,5000,50000);   % tanti valori di K
-poles = rlocus(sys_f, Kvec);
+poles = rlocus(sys_f,Kvec);
+
 
 % Trova il primo K per cui un polo entra nel semipiano destro
 stable = true(size(Kvec));
@@ -98,13 +98,20 @@ end
 % Il massimo K stabile è l'ultimo K prima dell'instabilità
 Kmax = Kvec(find(stable,1,'last'))
 
-% 8 
+%7 
 
+%Check of the controllability
+Mc = ctrb(A, B);
+rank_Mc = rank(Mc);
+rank_Mc == size(A,1)
+
+%Check of the observability
 Ob = obsv(A,C);
-rank_Ob = rank(Ob)
+rank_Ob = rank(Ob);
+rank_Ob == size(A,1)
 
-% 9
+% 8
 
 desired_poles = [-1 -2 -3 -4 -5 -6];
-K = acker(A,B,desired_poles)
+K = place(A,B,desired_poles)
 
