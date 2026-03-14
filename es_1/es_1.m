@@ -1,15 +1,21 @@
 
-% 1 sistema
+% -------------------------------------------------------------------------
+% MODEL 
+% -------------------------------------------------------------------------
 
-% Parameters
+% mass
 m1 = 10; m2 = 10; m3 = 10;
+
+% spring coeff
 k1 = 10; k2 = 10;
+
+% dumpers coeff
 c1 = 0.3; c2 = 0.3;
 
-% No viscous friction
+% friction coeff
 x1 = 0; x2 = 0; x3 = 0;
 
-% State-space matrices
+% System matrix
 A = [ 0      0        0        1        0        0;
       0      0        0        0        1        0;
       0      0        0        0        0        1;
@@ -17,39 +23,50 @@ A = [ 0      0        0        1        0        0;
       k1/m2  -(k1+k2)/m2   k2/m2   c1/m2    -(c1+c2+x2)/m2  c2/m2;
       0      k2/m3        -k2/m3    0   c2/m3 -(c2+x3)/m3 ];
 
+% Input matrix
 B = [0; 0; 0; 0; 0; 1/m3];
 
-C = [1 0 0 0 0 0];   % GPS on first wagon
+% Output matrix
+C = [1 0 0 0 0 0];
+
+% Feedthrough matrix
+D = 0;
+
+sys = ss(A,B,C,D);
+
+% -------------------------------------------------------------------------
+% 1 Check the stability of the system (simple/asymptotic/BIBO) 
+%  and plot poles and zeros of the system.
+% -------------------------------------------------------------------------
 
 
 
-sys = ss(A,B,C,0);
+eigenval = eig(A);
+
+poles = rlocus(sys);
+
+% no eigenvalues with real part > 0
+% simple stability, asymptotic stability, bibo stability
 
 
-% 1 poli , stabilità
+% -------------------------------------------------------------------------
+% 2 Plot the impulse response of the system.
+%  Is the response bounded?
+% -------------------------------------------------------------------------
 
-figure;
-pzmap(sys);
-grid on;
-
-figure; 
-rlocus(sys); 
-grid on; 
-title('Root Locus sistema con attrito');
-
-% no poles with real part > 0
-% simple stability, no bibo no asymptotic
-
-
-% 2 impulse response
 figure;
 impulse(sys, 1000);
 title('Impulse response (no friction)');
 grid on;
 
-% no BIBO stable 
+% yes
 
-% 3 free responde 
+% -------------------------------------------------------------------------
+% 3 Plot the free response of both 
+% the output (y(t)) and the state (x(t)) 
+% to the initial condition x0 = [1, 0, 0, 0, 0, 0]T.
+% Are the state and output signals bounded? Why is that?
+% -------------------------------------------------------------------------
 
 x0 = [1 0 0 0 0 0]';
 t = 0:1:1000;
@@ -66,11 +83,15 @@ plot(t1, x1);
 title('State response x(t) from x0 = [1 0 0 0 0 0]');
 grid on;
 
-% signals are bounded but oscillates
-% the inizial energy remains constant in the system
-% 
+% state and output signals are bounded but oscillates
 
-% 4 free response
+
+% -------------------------------------------------------------------------
+% 4 Plot the free response of both
+% the output (y(t)) and the state (x(t))
+% to the initial condition x0 = [0, 0, 0, 1, 0, 0]T.
+% Are the state and output signals bounded?
+% -------------------------------------------------------------------------
 
 x0 = [0 0 0 1 0 0]';
 [y2, t2, x2] = initial(sys, x0, t);
@@ -85,8 +106,8 @@ plot(t2, x2);
 title('State response x(t) from x0 = [0 0 0 1 0 0]');
 grid on;
 
-% signals y(t) not bounded cause all the trains moves
-% cause there is no friction
+% state and output signals are not bounded since all the vagons moves
+% and there is no friction.
 
 
 

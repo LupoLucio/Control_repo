@@ -1,58 +1,102 @@
-% 5 
 
-% Parameters
+% -------------------------------------------------------------------------
+% MODEL 
+% -------------------------------------------------------------------------
+
+% mass
 m1 = 10; m2 = 10; m3 = 10;
+
+% spring coeff
 k1 = 10; k2 = 10;
+
+% dumpers coeff
 c1 = 0.3; c2 = 0.3;
 
-% friction
+% friction coeff
 x1 = 0.2; x2 = 0.2; x3 = 0.2;
 
-% State-space matrices
+% System matrix
 A = [ 0      0        0        1        0        0;
       0      0        0        0        1        0;
       0      0        0        0        0        1;
       -k1/m1 k1/m1    0   -(c1+x1)/m1  c1/m1     0;
       k1/m2  -(k1+k2)/m2   k2/m2   c1/m2    -(c1+c2+x2)/m2  c2/m2;
       0      k2/m3        -k2/m3    0   c2/m3 -(c2+x3)/m3 ];
-
+% Input matrix
 B = [0; 0; 0; 0; 0; 1/m3];
 
-C = [1 0 0 0 0 0];   % GPS on first wagon
+% Output matrix
+C = [1 0 0 0 0 0];
+
+% Feedthrough matrix
+D = 0;
+
+sys_f = ss(A,B,C,D);
+
+% ----------------------------------------------------------------------
+% 1 Check the stability of the system (simple/asymptotic/BIBO) and plot 
+% poles and zeros of the system. 
+% ----------------------------------------------------------------------
+
+eigenval = eig(A);
 
 
-sys_f = ss(A,B,C,0);
+% eigenvalues with real part > 0
+% simple stability, asymptotic stability, bibo stability
 
-%1
+% ----------------------------------------------------------------------
+% 2 Plot the impulse response of the system.
+%  Is the response bounded?
+% ----------------------------------------------------------------------
+
 figure;
-pzmap(sys_f); 
-grid on;
-
-
-%2
-figure;
-impulse(sys_f,200);
+impulse(sys_f,2000);
 title('Impulse response with friction');
 grid on;
 
-%3
+% yes
+
+% -------------------------------------------------------------------------
+% 3 Plot the free response of both the output (y(t))
+%  and the state(x(t)) to the initial conditionx0=[1,0,0,0,0,0]T.
+% Are thestate and output signals bounded? Why is that?
+% -------------------------------------------------------------------------
+
 x0 = [1 0 0 0 0 0]';
-t = 0:0.01:20;
+t = 0:1:1000;
 [y1,t1,x1] = initial(sys_f,x0,t);
 
 figure; plot(t1,y1); title('y(t) with friction'); grid on;
 figure; plot(t1,x1); title('x(t) with friction'); grid on;
 
-%4
+% yes , beacuse of dumpers and friction the vagons will stop
+
+% -------------------------------------------------------------------------
+% 4 Plot the free response of both the output (y(t))
+% and the state (x(t)) to the initial condition x0 = [0, 0, 0, 1, 0, 0]T.
+% Are the state and output signals bounded?
+% -------------------------------------------------------------------------
+
 x0 = [0 0 0 1 0 0]';
-t = 0:0.01:20;
+t = 0:1:1000;
 [y1,t1,x1] = initial(sys_f,x0,t);
 
 figure; plot(t1,y1); title('y(t) with friction'); grid on;
 figure; plot(t1,x1); title('x(t) with friction'); grid on;
 
+% yes , beacuse of dumpers and friction the vagons will stop
 
-%5
+% -------------------------------------------------------------------------
+% 5 Find the frequency f1, f2 corresponding to -28dB and -50dB gain of the
+% Bode diagram.
+% Compute two zero-orderhold discretization of the system with f1 and f2
+%  as sampling frequencies.
+%  Plot the free response of the state
+% (x(t)) to the initial condition x0 = [1, 0, 0, 0, 0, 0]T
+% in both cases and compare them with the continuous time
+% response. What are the difference, and why?
+% -------------------------------------------------------------------------
+
 [mag,phase,w] = bode(sys_f);
 mag_db = 20*log10(squeeze(mag));
 
@@ -62,8 +106,8 @@ idx2 = find(mag_db <= -50, 1, 'first');
 w1 = w(idx1);
 w2 = w(idx2);
 
-f1 = w1/(2*pi)
-f2 = w2/(2*pi)
+f1 = w1/(2*pi);
+f2 = w2/(2*pi);
 
 Ts1 = 1/f1;
 Ts2 = 1/f2;
@@ -76,8 +120,14 @@ subplot(3,1,1); initial(sys_f, x0, 20); title('Continuous');
 subplot(3,1,2); initial(sysd1, x0, 20); title('Discrete f1');
 subplot(3,1,3); initial(sysd2, x0, 20); title('Discrete f2');
 
-%6
-Kvec = 0:0.0001:6.1;   % tanti valori di K
+% f1 more precise
+
+% -------------------------------------------------------------------------
+% 6 Study the root locus of the system and study what is the maximum value
+%  of the gain K that keeps the system stable.
+% -------------------------------------------------------------------------
+
+Kvec = 0:0.01:10;   % tanti valori di K
 figure; 
 rlocus(sys_f,Kvec); 
 grid on; 
@@ -98,19 +148,26 @@ end
 % Il massimo K stabile è l'ultimo K prima dell'instabilità
 Kmax = Kvec(find(stable,1,'last'))
 
-%7 
+% -------------------------------------------------------------------------
+% 7 Check whether the system is controllable.
+% -------------------------------------------------------------------------
 
-%Check of the controllability
 Mc = ctrb(A, B);
 rank_Mc = rank(Mc);
 rank_Mc == size(A,1)
 
-%Check of the observability
+% -------------------------------------------------------------------------
+% 8 Check whether the system is observable.
+% -------------------------------------------------------------------------
+
 Ob = obsv(A,C);
 rank_Ob = rank(Ob);
 rank_Ob == size(A,1)
 
-% 8
+% -------------------------------------------------------------------------
+% 8 Find a matrix K that makes the system asymptotically stable
+% -------------------------------------------------------------------------
+
 
 desired_poles = [-1 -2 -3 -4 -5 -6];
 K = place(A,B,desired_poles)
