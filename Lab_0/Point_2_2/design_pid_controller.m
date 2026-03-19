@@ -1,8 +1,8 @@
-function [kp,ki,kd,tl,type] = design_pid_controller(Mp,ts_5,P,alfa,wgc_p,signal_type)
+function [Kp,Ki,Kd,tl,type] = design_pid_controller(Mp,ts_5,P,alfa,wgc_p,signal_type)
 
 % Compute the parameters
 
-delta = log(1/Mp) / sqrt(pi^2 + (log(1/Mp))^2); 
+delta = log(1/Mp) / (sqrt(pi^2 + (log(1/Mp))^2)); 
 wgc = 3 / (delta * ts_5); 
 PM_des = 180/pi *(atan(2*delta / sqrt(sqrt(1+4*delta^4)-2*delta^2)));
 
@@ -10,7 +10,7 @@ PM_des = 180/pi *(atan(2*delta / sqrt(sqrt(1+4*delta^4)-2*delta^2)));
 mag = squeeze(mag); % Magnitude Compensation
 phase = squeeze(phase);
 
-delta_phi_deg = -180 + PM_des - phase;
+delta_phi_deg = PM_des - (180 + phase);
 delta_phi_rad = pi/180*delta_phi_deg; % Phase Lead
 delta_K = 1/mag;
 
@@ -24,11 +24,11 @@ if (number_of_integrators == 0)
     
     if (delta_phi_deg > 0 && delta_phi_deg < 90)
 
-        [kp,ki,kd,tl,type] = pd_controller(wgc_p,delta_phi_rad,delta_K,wgc);
+        [Kp,Ki,Kd,tl,type] = pd_controller(wgc_p,delta_phi_rad,delta_K,wgc);
     
     elseif (delta_phi_deg > 0 && delta_phi_deg <180)
 
-        [kp,ki,kd,tl,type] = pid_controller(alfa,wgc_p,delta_phi_rad,delta_K,wgc);
+        [Kp,Ki,Kd,tl,type] = pid_controller(alfa,wgc_p,delta_phi_rad,delta_K,wgc);
     
     else
          fprintf("Design with PID is not possible");
@@ -38,11 +38,11 @@ elseif (number_of_integrators == 1) && (delta_phi_deg < 0 && delta_phi_deg > -90
 
     if (delta_phi_deg < 0 && delta_phi_deg > -90)
 
-        [kp,ki,kd,tl,type] = pi_controller(wgc_p,delta_phi_rad,delta_K,wgc);
+        [Kp,Ki,Kd,tl,type] = pi_controller(wgc_p,delta_phi_rad,delta_K,wgc);
         
     elseif (delta_phi_deg > 0 && delta_phi_deg <180)
     
-        [kp,ki,kd,tl,type] = pid_controller(alfa,wgc_p,delta_phi_rad,delta_K,wgc);
+        [Kp,Ki,Kd,tl,type] = pid_controller(alfa,wgc_p,delta_phi_rad,delta_K,wgc);
 
     else
 
@@ -62,8 +62,8 @@ function [kp,ki,kd,tl,type] = pid_controller(alfa,wgc_p,delta_phi_rad,delta_K,wg
         Td = (tan(delta_phi_rad) + sqrt(tan(delta_phi_rad)^2 + 4/alfa)) / (2 * wgc); 
         Ti = alfa * Td; 
         kp = delta_K * cos(delta_phi_rad); 
-        ki = Kp / Ti;
-        kd = Kp * Td;
+        ki = kp / Ti;
+        kd = kp * Td;
         tl = 1 / (wgc_p * wgc); 
 
 end
@@ -107,3 +107,5 @@ n_poli_origine = sum(abs(tutti_i_poli) < soglia);
 number_of_integrators = n_poli_origine - integrators;
 
 end
+
+

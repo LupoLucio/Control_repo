@@ -133,36 +133,21 @@ P = km / (s * (Tm*s + 1) * gbox.N); % Ingresso [V], Uscita [rad]
 % PID required parameters
 
 ts_5 = 0.15;          
-Mp = 0.1;            
+Mp = 0.05;            
 alfa = 4;
 wgc_p = 2;
 signal_type = "step";
 
 % Insert here the PID parameters or comment the parameters and uncomment and call the function
-% design_pid_controller tha apply the bode method to compute kp, kd, ki, tl
-
-% kp = 7;
-% ki = 2.55;
-% kd = 0.08;
-% tl = 0.015;
-kp = 6.95;
-ki = 2.55;
-kd = 0.103;
-tl = 0.017;
-
-
+% design_pid_controller that apply the bode method to compute kp, kd, ki, tl
 
 % call of the design_pid_controller function
 
-% Inserire qui la chiamata alla funzione 
+[kp, ki, kd, tl, type] = design_pid_controller(Mp,ts_5,P,alfa,wgc_p,signal_type);
 
-%[kp, ki, kd, tl, type] = design_pid_controller(Mp,ts_5,P,alfa,wgc_p,signal_type);
+%Requirements verification
 
-% fprintf('PID: %s\n', type);
-fprintf('Kp: %f\n', kp);
-fprintf('Ki: %f\n', ki);
-fprintf('Kd: %f\n', kd);
-fprintf('tl: %f\n', tl);
+out = pid_metrics(P,kp,ki,kd,tl);
 
 % Initialization of the input of LaB_0_real.slx (simulink simulations doesnt't
 % start if a value is not assigned to these parameters
