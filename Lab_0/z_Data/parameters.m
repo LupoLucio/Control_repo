@@ -163,32 +163,7 @@ var.c = 1.96;
 % Save parameters for all simulations. If you change somethings in param.m
 % file rerun the file after all saves
 
-save('Control_repo\Lab_0\Generated_files\parameters.mat')
-
-% === CONFIGURAZIONE CARTELLE SIMULINK ===
-
-% Cartella base dove vuoi mettere TUTTI i file temporanei
-baseDir = 'Control_repo\Lab_0\Generated_files';
-
-% Sottocartelle dedicate
-cacheDir   = fullfile(baseDir, 'cache');    % per file .slxc
-codegenDir = fullfile(baseDir, 'codegen');  % per slprj e code generation
-
-% Crea le cartelle se non esistono
-if ~exist(cacheDir, 'dir')
-    mkdir(cacheDir);
-end
-
-if ~exist(codegenDir, 'dir')
-    mkdir(codegenDir);
-end
-
-% === IMPOSTAZIONE PARAMETRI GLOBALI ===
-
-Simulink.fileGenControl( ...
-    'set', ...
-    'CacheFolder', cacheDir, ...
-    'CodeGenFolder', codegenDir);
+save('Lab_0\Generated_files\parameters.mat')
 
 
 
