@@ -165,6 +165,29 @@ var.c = 1.96;
 
 save('Lab_0_automatized\Generated_files\parameters.mat')
 
+% === CONFIGURAZIONE CARTELLE SIMULINK ===
 
+% Cartella base dove vuoi mettere TUTTI i file temporanei
+baseDir = 'Lab_0_20_03_2026\Generated_files';
+
+% Sottocartelle dedicate
+cacheDir   = fullfile(baseDir, 'cache');    % per file .slxc
+codegenDir = fullfile(baseDir, 'codegen');  % per slprj e code generation
+
+% Crea le cartelle se non esistono
+if ~exist(cacheDir, 'dir')
+    mkdir(cacheDir);
+end
+
+if ~exist(codegenDir, 'dir')
+    mkdir(codegenDir);
+end
+
+% === IMPOSTAZIONE PARAMETRI GLOBALI ===
+
+Simulink.fileGenControl( ...
+    'set', ...
+    'CacheFolder', cacheDir, ...
+    'CodeGenFolder', codegenDir);
 
 

@@ -148,6 +148,8 @@ signal_type = "step";
 
 out = pid_metrics(P,kp,ki,kd,tl);
 
+step_gain = 1;
+
 % parameter for confidence intervals. See Lab assignment: point 2.2) equation 12
 var.c = 1.96;
 
@@ -155,6 +157,31 @@ var.c = 1.96;
 % file rerun the file after all saves
 
 save('Lab_0_20_03_2026\Generated_files\parameters.mat')
+
+% === CONFIGURAZIONE CARTELLE SIMULINK ===
+
+% Cartella base dove vuoi mettere TUTTI i file temporanei
+baseDir = 'Lab_0_20_03_2026\Generated_files';
+
+% Sottocartelle dedicate
+cacheDir   = fullfile(baseDir, 'cache');    % per file .slxc
+codegenDir = fullfile(baseDir, 'codegen');  % per slprj e code generation
+
+% Crea le cartelle se non esistono
+if ~exist(cacheDir, 'dir')
+    mkdir(cacheDir);
+end
+
+if ~exist(codegenDir, 'dir')
+    mkdir(codegenDir);
+end
+
+% === IMPOSTAZIONE PARAMETRI GLOBALI ===
+
+Simulink.fileGenControl( ...
+    'set', ...
+    'CacheFolder', cacheDir, ...
+    'CodeGenFolder', codegenDir);
 
 
 
