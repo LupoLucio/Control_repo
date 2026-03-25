@@ -1,4 +1,5 @@
-clc
+clear all;
+clc;
 
 % Contains the set of all paramters given of the datasheet
 % The last parts includes the call of the PID design function and the
@@ -148,14 +149,7 @@ signal_type = "step";
 
 out = pid_metrics(P,kp,ki,kd,tl);
 
-% Initialization of the input of LaB_0_real.slx (simulink simulations doesnt't
-% start if a value is not assigned to these parameters
-
 step_gain = 1;
-simul.select2 = 1;
-simul.select1 = 1;
-simul.stair_gain = 1;
-
 
 % parameter for confidence intervals. See Lab assignment: point 2.2) equation 12
 var.c = 1.96;
@@ -163,7 +157,7 @@ var.c = 1.96;
 % Save parameters for all simulations. If you change somethings in param.m
 % file rerun the file after all saves
 
-save('Lab_0_automatized\Generated_files\parameters.mat')
+save('Lab_0_20_03_2026\Generated_files\parameters.mat')
 
 % === CONFIGURAZIONE CARTELLE SIMULINK ===
 
@@ -189,5 +183,7 @@ Simulink.fileGenControl( ...
     'set', ...
     'CacheFolder', cacheDir, ...
     'CodeGenFolder', codegenDir);
+
+
 
 
