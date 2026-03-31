@@ -1,4 +1,4 @@
-function [Kp,Ki,Kd,tl,type] = design_pid_controller(Mp,ts_5,P,alfa,wgc_p,signal_type)
+function [Kp,Ki,Kd,tl,type] = design_pid_controller_manual(Mp,ts_5,P,alfa,wgc_p,signal_type)
 
         % Compute the parameters
         
@@ -14,7 +14,7 @@ function [Kp,Ki,Kd,tl,type] = design_pid_controller(Mp,ts_5,P,alfa,wgc_p,signal_
         delta_phi_rad = pi/180*delta_phi_deg; % Phase Lead
         delta_K = 1/mag;
         
-        number_of_integrators = required_integrators(P,signal_type);
+        number_of_integrators = required_integrators_manual(P,signal_type);
         
         
         % Note: tl = 1 / (wgc_p * wgc); % 2 - 5 times wgc the parameter can be tuned
@@ -24,13 +24,13 @@ function [Kp,Ki,Kd,tl,type] = design_pid_controller(Mp,ts_5,P,alfa,wgc_p,signal_
             
             if (delta_phi_deg > 0 && delta_phi_deg < 90)
         
-                [Kp,Ki,Kd,tl,type] = pd_controller(wgc_p,delta_phi_rad,delta_K,wgc);
+                [Kp,Ki,Kd,tl,type] = pd_controller_manual(wgc_p,delta_phi_rad,delta_K,wgc);
 
                 fprintf("delta_phi_deg : %d , Design with PD\n", delta_phi_deg);
             
             elseif (delta_phi_deg > 0 && delta_phi_deg <180)
         
-                [Kp,Ki,Kd,tl,type] = pid_controller(alfa,wgc_p,delta_phi_rad,delta_K,wgc);
+                [Kp,Ki,Kd,tl,type] = pid_controller_manual(alfa,wgc_p,delta_phi_rad,delta_K,wgc);
 
                 fprintf("delta_phi_deg : %d , Design with PID\n", delta_phi_deg);
             
@@ -42,13 +42,13 @@ function [Kp,Ki,Kd,tl,type] = design_pid_controller(Mp,ts_5,P,alfa,wgc_p,signal_
         
             if (delta_phi_deg < 0 && delta_phi_deg > -90)
         
-                [Kp,Ki,Kd,tl,type] = pi_controller(wgc_p,delta_phi_rad,delta_K,wgc);
+                [Kp,Ki,Kd,tl,type] = pi_controller_manual(wgc_p,delta_phi_rad,delta_K,wgc);
 
                 fprintf("delta_phi_deg %d : , Design with PI\n", delta_phi_deg);
                 
             elseif (delta_phi_deg > 0 && delta_phi_deg <180)
             
-                [Kp,Ki,Kd,tl,type] = pid_controller(alfa,wgc_p,delta_phi_rad,delta_K,wgc);
+                [Kp,Ki,Kd,tl,type] = pid_controller_manual(alfa,wgc_p,delta_phi_rad,delta_K,wgc);
 
                 fprintf("delta_phi_deg %d : , Design with PID\n", delta_phi_deg);
         

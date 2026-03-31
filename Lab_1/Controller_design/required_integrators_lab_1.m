@@ -1,4 +1,4 @@
-function [number_of_integrators] = required_integrators(P,signal_type)
+function [number_of_integrators] = required_integrators_lab_1(P,signal_type)
 
         soglia = 1e-6;
         

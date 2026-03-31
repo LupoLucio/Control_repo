@@ -1,4 +1,4 @@
-function [kp,ki,kd,tl,type] = pd_controller(wgc_p,delta_phi_rad,delta_K,wgc)
+function [kp,ki,kd,tl,type] = pd_controller_automatized(wgc_p,delta_phi_rad,delta_K,wgc)
 
         kp = delta_K * cos(delta_phi_rad);
         kd = (delta_K * sin(delta_phi_rad)) / wgc;

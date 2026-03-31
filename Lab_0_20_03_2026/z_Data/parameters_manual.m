@@ -143,7 +143,7 @@ signal_type = "step";
 
 % call of the design_pid_controller function
 
-[kp, ki, kd, tl, type] = design_pid_controller(Mp,ts_5,P,alfa,wgc_p,signal_type);
+[kp, ki, kd, tl, type] = design_pid_controller_manual(Mp,ts_5,P,alfa,wgc_p,signal_type);
 
 %Requirements verification
 
