@@ -26,45 +26,44 @@ function [Kp,Ki,Kd,tl,type] = design_pid_controller_lab_1(Mp,ts_5,P,alfa,wgc_p,s
         
                 [Kp,Ki,Kd,tl,type] = pd_controller_lab_1(wgc_p,delta_phi_rad,delta_K,wgc);
 
-                fprintf("delta_phi_deg : %d , Design with PD\n", delta_phi_deg);
             
             elseif (delta_phi_deg > 0 && delta_phi_deg <180)
         
                 [Kp,Ki,Kd,tl,type] = pid_controller_lab_1(alfa,wgc_p,delta_phi_rad,delta_K,wgc);
 
-                fprintf("delta_phi_deg : %d , Design with PID\n", delta_phi_deg);
-            
-            else
-                 fprintf("Design with PID is not possible");
+            else 
+                Kp = 0;
+                Ki = 0;
+                Kd = 0;
+                tl = 0;
+                type = 0;
             end
+
         
-        elseif (number_of_integrators == 1) && (delta_phi_deg < 0 && delta_phi_deg > -90)
+        elseif (number_of_integrators == 1)
         
             if (delta_phi_deg < 0 && delta_phi_deg > -90)
         
                 [Kp,Ki,Kd,tl,type] = pi_controller_lab_1(wgc_p,delta_phi_rad,delta_K,wgc);
-
-                fprintf("delta_phi_deg %d : , Design with PI\n", delta_phi_deg);
                 
             elseif (delta_phi_deg > 0 && delta_phi_deg <180)
             
                 [Kp,Ki,Kd,tl,type] = pid_controller_lab_1(alfa,wgc_p,delta_phi_rad,delta_K,wgc);
-
-                fprintf("delta_phi_deg %d : , Design with PID\n", delta_phi_deg);
-        
-            else
-        
-                fprintf("Design with PID is not possible");
-            
+            else 
+                 Kp = 0;
+                 Ki = 0;
+                 Kd = 0;
+                 tl = 0;
+                 type = 0;
             end
-        
         else 
-        
-            fprintf("Design with PID is not possible");
-                
+                 Kp = 0;
+                 Ki = 0;
+                 Kd = 0;
+                 tl = 0;
+                 type = 0;
         end
-
-end
+        
 
 
 

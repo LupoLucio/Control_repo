@@ -132,37 +132,69 @@ P = km / (s * (Tm*s + 1) * gbox.N); % Ingresso [V], Uscita [rad]
 
 % PID required parameters
 
-ts_5 = 0.15;          
-Mp = 0.05;            
+ts_5 = 0.05;          
+Mp = 0.35;            
 alfa = 4;
-wgc_p = 2;
-signal_type = "step";
+wgc_p = 5;
+delta = log(1/Mp) / (sqrt(pi^2 + (log(1/Mp))^2)); 
+wgc = 3 / (delta * ts_5);
+signal_type = "linear ramp";
 
 % Insert here the PID parameters or comment the parameters and uncomment and call the function
 % design_pid_controller that apply the bode method to compute kp, kd, ki, tl
 
 % call of the design_pid_controller function
 
-[kp, ki, kd, tl, type] = design_pid_controller_manual(Mp,ts_5,P,alfa,wgc_p,signal_type);
+[kp, ki, kd, tl, type] = design_pid_controller_lab_1(Mp,ts_5,P,alfa,wgc_p,signal_type);
+
+% --- Costruzione del PIDF manuale ---
+s = tf('s');
+C = kp + ki/s + kd*s/(1 + tl*s);
+
+% --- Anello aperto ---
+L = C * P;
+
+% --- Sistema in catena chiusa ---
+T = feedback(L, 1);
+
+% --- Frequenza di cutoff (closed-loop bandwidth) ---
+Wcut = bandwidth(T);
 
 %Requirements verification
 
-out = pid_metrics_manual(P,kp,ki,kd,tl);
+out = pid_metrics_automatized(P,kp,ki,kd,tl);
+
+% Initialization of the input of LaB_0_real.slx (simulink simulations doesnt't
+% start if a value is not assigned to these parameters
 
 step_gain = 1;
+simul.select2 = 1;
+simul.select1 = 1;
+simul.stair_gain = 1;
+
 
 % parameter for confidence intervals. See Lab assignment: point 2.2) equation 12
 var.c = 1.96;
 
+%% Additional parameters for lab 1
+
+% Saturator bounds
+
+u_bar_max =10;
+
+K_W = 15;
+
+Beq = mot.B+(mld.B/((gbox.N)^2));
+
 % Save parameters for all simulations. If you change somethings in param.m
 % file rerun the file after all saves
 
-save('Lab_0_20_03_2026\Generated_files\parameters.mat')
+save('Lab_1\Generated_files\parameters.mat')
 
 % === CONFIGURAZIONE CARTELLE SIMULINK ===
 
 % Cartella base dove vuoi mettere TUTTI i file temporanei
-baseDir = 'Lab_0_20_03_2026\Generated_files';
+baseDir = 'Lab_1\Generated_files';
 
 % Sottocartelle dedicate
 cacheDir   = fullfile(baseDir, 'cache');    % per file .slxc
@@ -183,7 +215,5 @@ Simulink.fileGenControl( ...
     'set', ...
     'CacheFolder', cacheDir, ...
     'CodeGenFolder', codegenDir);
-
-
 
 

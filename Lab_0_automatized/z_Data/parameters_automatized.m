@@ -147,7 +147,7 @@ signal_type = "step";
 
 %Requirements verification
 
-out = pid_metrics(P,kp,ki,kd,tl);
+out = pid_metrics_automatized(P,kp,ki,kd,tl);
 
 % Initialization of the input of LaB_0_real.slx (simulink simulations doesnt't
 % start if a value is not assigned to these parameters
