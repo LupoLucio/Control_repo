@@ -132,37 +132,54 @@ P = km / (s * (Tm*s + 1) * gbox.N); % Ingresso [V], Uscita [rad]
 
 % PID required parameters
 
-ts_5 = 0.05;          
-Mp = 0.35;            
-alfa = 4;
-wgc_p = 5;
+ts_5 = 0.0695;          
+Mp = 0.08;            
 delta = log(1/Mp) / (sqrt(pi^2 + (log(1/Mp))^2)); 
 wgc = 3 / (delta * ts_5);
-signal_type = "linear ramp";
 
 % Insert here the PID parameters or comment the parameters and uncomment and call the function
 % design_pid_controller that apply the bode method to compute kp, kd, ki, tl
 
 % call of the design_pid_controller function
 
-[kp, ki, kd, tl, type] = design_pid_controller_lab_1(Mp,ts_5,P,alfa,wgc_p,signal_type);
+wc_des = 3 / (delta * ts_5);
+
+PM_des = (180/pi) * atan( (2*delta) / sqrt( sqrt(1+4*delta^4) - 2*delta^2 ) );
+
+% Opzioni per imporre il margine di fase
+opts = pidtuneOptions('PhaseMargin', PM_des);
+
+% Sintesi PIDF con specifica diretta
+C_vector = pidtune(P, 'PIDF', wc_des, opts);
 
 % --- Costruzione del PIDF manuale ---
+kp = C_vector.Kp;
+
+kd = C_vector.Kd;
+
+ki = C_vector.Ki;
+
+tl = C_vector.Tf;
+
 s = tf('s');
+
 C = kp + ki/s + kd*s/(1 + tl*s);
 
-% --- Anello aperto ---
+% --- Open loop TF ---
 L = C * P;
 
-% --- Sistema in catena chiusa ---
-T = feedback(L, 1);
+[GM, PM, Wcg, Wcp] = margin(L);
 
-% --- Frequenza di cutoff (closed-loop bandwidth) ---
-Wcut = bandwidth(T);
+fprintf('PIDF sintetizzato:\n');
+fprintf('  PM ottenuto = %.2f°\n', PM);
+fprintf('  wc ottenuta = %.2f rad/s\n', Wcp);
+
+margin(L)
+grid on
 
 %Requirements verification
 
-out = pid_metrics_automatized(P,kp,ki,kd,tl);
+out = pid_metrics_lab_1(P,kp,ki,kd,tl);
 
 % Initialization of the input of LaB_0_real.slx (simulink simulations doesnt't
 % start if a value is not assigned to these parameters
@@ -180,7 +197,7 @@ var.c = 1.96;
 
 % Saturator bounds
 
-u_bar_max =10;
+u_bar_max =12;
 
 K_W = 15;
 

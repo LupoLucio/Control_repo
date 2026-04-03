@@ -1,32 +1,35 @@
 function out = pid_metrics(P, Kp, Ki, Kd, Tl)
 
     s = tf('s');
-    D_real_term = (Kd*s)/(1+Tl*s);
     
+    % Termine derivativo con filtro
+    D_real_term = (Kd*s)/(1 + Tl*s);
+    
+    % Termine integrativo
     I_term = Ki/s;
     
+    % Termine proporzionale
     P_term = Kp;
     
+    % Controllore PID
     C = P_term + I_term + D_real_term;
     
+    % Funzione in anello chiuso
     T = feedback(C*P, 1);
     
-    info = stepinfo(T);
+    % Metriche con specifiche corrette:
+    % - Settling time al 5%
+    % - Rise time 5%–95%
+    info = stepinfo(T, ...
+        'SettlingTimeThreshold', 0.05);
     
-    out.TF_closed_loop = T;
-    out.settling_time = info.SettlingTime;
-    out.rise_time = info.RiseTime;
+    % Output
+    out.ts_5 = info.SettlingTime;          % Settling time 5%
     out.overshoot = info.Overshoot;
-    out.final_value = dcgain(T);
-    out.closed_loop_poles = pole(T);
 
+    % Stampa risultati
     fprintf("\n=== PID ANALYSIS RESULTS ===\n");
-    fprintf("Kp = %.4f, Ki = %.4f, Kd = %.4f, Tl = %.4f\n", Kp, Ki, Kd, Tl);
-    fprintf("Rise time: %.4f s\n", out.rise_time);
-    fprintf("Settling time: %.4f s\n", out.settling_time);
+    fprintf("Settling time (5%%): %.4f s\n", out.ts_5);
     fprintf("Overshoot: %.2f %%\n", out.overshoot);
-    fprintf("Final value: %.4f\n", out.final_value);
-    fprintf("Closed loop poles: \n");
-    disp(out.closed_loop_poles);
     fprintf("====================================\n\n");
 end
