@@ -11,9 +11,14 @@ C = [1 0];
 
 D = 0;
 
+% state space model
+sys = ss(A,B,C,D);
+G = tf(sys);
+[num_G,den_G] = tfdata(G, 'v');
+
+
 % specs 2 order system
-delta = 0.6;
-wn = 45;
+wn = wgc;
 
 p1 = -delta*wn + 1j*wn*sqrt(1-delta^2);
 p2 = -delta*wn - 1j*wn*sqrt(1-delta^2);
@@ -24,18 +29,11 @@ poles_des = [p1 p2];
 K = place(A, B, poles_des);
 
 % calcolo Nu e Nx
-M = [A B; C 0];
+M = [A B; C D];
 rhs = [0;0;1];
 sol = M\rhs;
 
 Nx = sol(1:2);% vector
 Nu = sol(3);% scalar
 
-Nr = Nu + K*Nx;
 
-% controllore finale
-%u = -K*x + Nr*r
-
-
-% check
-rank(ctrb(A,B))
