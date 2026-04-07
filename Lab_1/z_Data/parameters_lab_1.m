@@ -203,6 +203,10 @@ K_W = 15;
 
 Beq = mot.B+(mld.B/((gbox.N)^2));
 
+LSB_DAC = daq.dac.fs/(2^(daq.dac.bits)-1);
+
+LSB_ADC = daq.adc.fs/(2^(daq.adc.bits)-1);
+
 % Save parameters for all simulations. If you change somethings in param.m
 % file rerun the file after all saves
 
