@@ -20,8 +20,11 @@ G = tf(sys);
 % specs 2 order system
 wn = wgc;
 
-p1 = -delta*wn + 1j*wn*sqrt(1-delta^2);
-p2 = -delta*wn - 1j*wn*sqrt(1-delta^2);
+sigma = -delta*wn;
+wd = wn*sqrt(1-delta^2);
+
+p1 = sigma + 1j * wd;
+p2 = sigma - 1j * wd;
 
 poles_des = [p1 p2];
 
