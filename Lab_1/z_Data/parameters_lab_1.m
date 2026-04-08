@@ -116,7 +116,7 @@ Ts = 1e-3;
 
 % Real derivative parameters
 
-rdp.wci = 2*3.14*20;
+rdp.wci = 2*3.14*50;
 rdp.di = 1/(sqrt(2));
 
 % Simplified Motor transfer function

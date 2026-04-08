@@ -41,7 +41,7 @@ for i = 1:4
     end
 end
 
-index = 2;
+index = 1;
 
 %% --- OUTPUT ---
 disp("Guadagni K per ciascun caso:")
