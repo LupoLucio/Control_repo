@@ -1,39 +1,72 @@
+n = size(A,1);
 
+%% =========================
+% 2. MODELLO INTERNO (alpha)
+% =========================
+% Esempio: tracking di gradino → m = 1 → s = 0
+alpha = [1 0];   % s
 
-% State-space matrices of gear motor
-A = [ 0      1;
+m = length(alpha) - 1;
 
-     0      -(Req*Beq+mot.Kt*mot.Ke)/(Req*Jeq)];
+%% =========================
+% 3. COSTRUZIONE SISTEMA ESTESO (Az, Bz)
+% =========================
 
-B = [0; (drv.dcgain*mot.Kt)/(gbox.N*Req*Jeq)];
+% Dimensione totale: m + n
+Az = zeros(m+n);
+Bz = zeros(m+n,1);
 
-C = [1 0];
+% Parte errore (catena integratori)
+for i = 1:m-1
+    Az(i, i+1) = 1;
+end
 
-D = 0;
+% Riga dinamica errore
+Az(m,1:m) = -fliplr(alpha(2:end));  % [-alpha0 ... -alpha_m-1]
+Az(m,m+1:end) = C;
 
-% state space model
-sys = ss(A,B,C,D);
-G = tf(sys);
-[num_G,den_G] = tfdata(G, 'v');
+% Dinamica ξ
+Az(m+1:end, m+1:end) = A;
 
+% Ingresso
+Bz(end-n+1:end) = B;
 
-% specs 2 order system
-wn = wgc;
+%% =========================
+% 4. PROGETTO Kz
+% =========================
+% Poli desiderati (scegli tu)
+poles = [-2 -3 -4];
 
-p1 = -delta*wn + 1j*wn*sqrt(1-delta^2);
-p2 = -delta*wn - 1j*wn*sqrt(1-delta^2);
+Kz = place(Az, Bz, poles);
 
-poles_des = [p1 p2];
+% Separazione guadagni
+k = Kz(1:m);           % k0 ... k_m-1
+Kxi = Kz(m+1:end);     % Kξ
 
-% calcolo K 
-K = place(A, B, poles_des);
+%% =========================
+% 5. COSTRUZIONE H(s)
+% =========================
 
-% calcolo Nu e Nx
-M = [A B; C D];
-rhs = [0;0;1];
-sol = M\rhs;
+% Numeratore: k_m-1 ... k0
+num = fliplr(k);
 
-Nx = sol(1:2);% vector
-Nu = sol(3);% scalar
+% Denominatore: s^m + ...
+den = alpha;
 
+H = tf(num, den);
 
+%% =========================
+% 6. OUTPUT
+% =========================
+disp('Kxi = ');
+disp(Kxi);
+
+disp('H(s) = ');
+H
+
+%% =========================
+% 7. VERIFICA (opzionale)
+% =========================
+Acl = Az - Bz*Kz;
+disp('Poli sistema chiuso:');
+disp(eig(Acl));
