@@ -1,22 +1,50 @@
+%% PARAMETERS_AUTOMATIZED.M - Control Lab 0 System Parameters
+%  
+%  This file initializes all hardware, sensor, and controller parameters
+%  for the SRV02-IL Rotary Servo plant (DC motor + gearbox).
+%  
+%  HISTORY:
+%    - Compiled from datasheet specifications
+%    - Motor: Faulhaber 2338S006S brushed DC motor
+%    - Gearbox: Micromotor SA 23/1 planetary + external transmission
+%
+%  USAGE:
+%    1. Run this script to initialize all parameters in workspace
+%    2. Modify only PID tuning parameters (ts_5, Mp, alfa, wgc_p)
+%    3. Variables saved to Generated_files/parameters.mat
+%
+%===========================================================================
+
 clear all;
 clc;
 
-% Contains the set of all paramters given of the datasheet
-% The last parts includes the call of the PID design function and the
-% initialization of the input for simulink simulations
+% =========================================================================
+% CONVERSION FACTORS (fundamental constants)
+% =========================================================================
 
-% General parameters and conversion gains
-%   conversion gains
-rpm2rads = 2*pi/60;                 %   [rpm]   -> [rad/s]
-rads2rpm = 60/2/pi;                 %   [rad/s] -> [rpm]
+% Angular velocity conversions
+RPM_TO_RAD_S = 2*pi/60;             %   [rpm]   -> [rad/s]
+RAD_S_TO_RPM = 60/(2*pi);           %   [rad/s] -> [rpm]
 
-rpm2degs = 360/60;                  %   [rpm]   -> [deg/s]
-degs2rpm = 60/360;                  %   [deg/s] -> [rpm]
+% Angular rate conversions
+RPM_TO_DEG_S = 360/60;              %   [rpm]   -> [deg/s]
+DEG_S_TO_RPM = 60/360;              %   [deg/s] -> [rpm]
 
-deg2rad = pi/180;                   %   [deg]   -> [rad]
-rad2deg = 180/pi;                   %   [rad]   -> [deg]
+% Angle conversions
+DEG_TO_RAD = pi/180;                %   [deg]   -> [rad]
+RAD_TO_DEG = 180/pi;                %   [rad]   -> [deg]
 
-ozin2Nm = 0.706e-2;                 %   [oz*inch] -> [N*m]
+% Torque conversions
+OZ_IN_TO_NM = 0.706e-2;             %   [oz*inch] -> [N*m]
+
+% Legacy variable names (for compatibility)
+rpm2rads = RPM_TO_RAD_S;
+rads2rpm = RAD_S_TO_RPM;
+rpm2degs = RPM_TO_DEG_S;
+degs2rpm = DEG_S_TO_RPM;
+deg2rad = DEG_TO_RAD;
+rad2deg = RAD_TO_DEG;
+ozin2Nm = OZ_IN_TO_NM;
 
 % DC motor nominal parameters
 %   brushed DC-motor Faulhaber 2338S006S
@@ -114,10 +142,12 @@ daq.adc.q    = 2*daq.adc.fs/(2^daq.adc.bits-1);     %   quantization
 % Sampling time
 Ts = 1e-3;
 
-% Real derivative parameters
+% Real derivative parameters (second-order low-pass filter for differentiation)
+RAD_INTEGRATOR_FREQ = 2*pi*20;      %   Integrator cutoff frequency [rad/s]
+DAMPING_RATIO = 1/sqrt(2);          %   Damping ratio for filter poles [unitless]
 
-rdp.wci = 2*3.14*20;
-rdp.di = 1/(sqrt(2));
+rdp.wci = RAD_INTEGRATOR_FREQ;      %   Legacy variable name
+rdp.di = DAMPING_RATIO;             %   Legacy variable name
 
 % Simplified Motor transfer function
 
@@ -130,13 +160,24 @@ s = tf('s');
 P = km / (s * (Tm*s + 1) * gbox.N); % Ingresso [V], Uscita [rad] 
 [numP, denP] = tfdata(P, 'v');
 
-% PID required parameters
+% =========================================================================
+% PID CONTROLLER DESIGN SPECIFICATIONS
+% =========================================================================
+% These parameters define the desired closed-loop performance.
+% Modify these only when tuning controller performance.
 
-ts_5 = 0.15;          
-Mp = 0.05;            
-alfa = 4;
-wgc_p = 2;
-signal_type = "step";
+DESIRED_OVERSHOOT_PERCENT = 5;          %   Maximum overshoot [%]
+DESIRED_SETTLING_TIME_S = 0.15;         %   5% settling time [s]
+PID_TUNING_RATIO_ALFA = 4;              %   PID ratio parameter [unitless, 4-10 typical]
+FREQUENCY_WEIGHT_WGC_P = 2;             %   Frequency weighting [unitless, 1-5 typical]
+REFERENCE_SIGNAL_TYPE = "step";         %   Expected input: 'impulse', 'step', 'ramp'
+
+% Convert to normalized form (for design functions)
+ts_5 = DESIRED_SETTLING_TIME_S;
+Mp = DESIRED_OVERSHOOT_PERCENT / 100;   % Normalize to [0,1] range
+alfa = PID_TUNING_RATIO_ALFA;
+wgc_p = FREQUENCY_WEIGHT_WGC_P;
+signal_type = REFERENCE_SIGNAL_TYPE;
 
 % Insert here the PID parameters or comment the parameters and uncomment and call the function
 % design_pid_controller that apply the bode method to compute kp, kd, ki, tl
