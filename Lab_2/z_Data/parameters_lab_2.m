@@ -198,12 +198,12 @@ var.c = 1.96;
 % Save parameters for all simulations. If you change somethings in param.m
 % file rerun the file after all saves
 
-save('Lab_1\Generated_files\parameters.mat')
+save('Lab_2\Generated_files\parameters.mat')
 
 % === CONFIGURAZIONE CARTELLE SIMULINK ===
 
 % Cartella base dove vuoi mettere TUTTI i file temporanei
-baseDir = 'Lab_1\Generated_files';
+baseDir = 'Lab_2\Generated_files';
 
 % Sottocartelle dedicate
 cacheDir   = fullfile(baseDir, 'cache');    % per file .slxc
