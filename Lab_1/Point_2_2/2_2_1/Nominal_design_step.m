@@ -1,5 +1,3 @@
-
-
 % State-space matrices of gear motor
 A = [ 0      1;
 
