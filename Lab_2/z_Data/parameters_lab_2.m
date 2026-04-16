@@ -163,10 +163,12 @@ tl = C_vector.Tf;
 
 s = tf('s');
 
-C = kp + ki/s + kd*s/(1 + tl*s);
+C_s = kp + ki/s + kd*s/(1 + tl*s);
+
+
 
 % --- Open loop TF ---
-L = C * P;
+L = C_s * P;
 
 [GM, PM, Wcg, Wcp] = margin(L);
 
@@ -192,20 +194,6 @@ simul.stair_gain = 1;
 
 % parameter for confidence intervals. See Lab assignment: point 2.2) equation 12
 var.c = 1.96;
-
-% Additional parameters for lab 1
-
-% Saturator bounds
-
-u_bar_max =12;
-
-K_W = 15;
-
-Beq = mot.B+(mld.B/((gbox.N)^2));
-
-LSB_DAC = daq.dac.fs/(2^(daq.dac.bits)-1);
-
-LSB_ADC = daq.adc.fs/(2^(daq.adc.bits)-1);
 
 % Save parameters for all simulations. If you change somethings in param.m
 % file rerun the file after all saves
