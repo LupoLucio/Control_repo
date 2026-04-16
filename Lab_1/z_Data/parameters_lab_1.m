@@ -193,7 +193,7 @@ simul.stair_gain = 1;
 % parameter for confidence intervals. See Lab assignment: point 2.2) equation 12
 var.c = 1.96;
 
-%% Additional parameters for lab 1
+% Additional parameters for lab 1
 
 % Saturator bounds
 

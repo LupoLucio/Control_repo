@@ -1,4 +1,4 @@
-function [Kp,Ki,Kd,tl,type] = design_pid_controller_automatized(Mp,ts_5,P,alfa,wgc_p,signal_type)
+function [Kp,Ki,Kd,tl,type] = controller_design(Mp,ts_5,P,alfa,wgc_p,signal_type)
 
         % Compute the parameters
         
@@ -63,6 +63,63 @@ function [Kp,Ki,Kd,tl,type] = design_pid_controller_automatized(Mp,ts_5,P,alfa,w
             fprintf("Design with PID is not possible");
                 
         end
+
+end
+
+
+function [kp,ki,kd,tl,type] = pd_controller_automatized(wgc_p,delta_phi_rad,delta_K,wgc)
+
+        kp = delta_K * cos(delta_phi_rad);
+        kd = (delta_K * sin(delta_phi_rad)) / wgc;
+        ki = 0;
+        type = 'PD';
+        tl = 1 / (wgc_p * wgc); 
+end
+
+
+function [kp,ki,kd,tl,type] = pi_controller_automatized(wgc_p,delta_phi_rad,delta_K,wgc)
+
+        type = 'PI';
+        kp = delta_K * cos(delta_phi_rad);
+        ki = -wgc * delta_K * sin(delta_phi_rad);
+        kd = 0;
+        tl = 1 / (wgc_p * wgc); 
+end
+
+
+function [kp,ki,kd,tl,type] = pid_controller_automatized(alfa,wgc_p,delta_phi_rad,delta_K,wgc)
+        type = 'PID';
+        Td = (tan(delta_phi_rad) + sqrt(tan(delta_phi_rad)^2 + 4/alfa)) / (2 * wgc); 
+        Ti = alfa * Td; 
+        kp = delta_K * cos(delta_phi_rad); 
+        ki = kp / Ti;
+        kd = kp * Td;
+        tl = 1 / (wgc_p * wgc); 
+
+end
+
+
+function [number_of_integrators] = required_integrators_automatized(P,signal_type)
+
+        soglia = 1e-6;
+        
+        if signal_type == "impulse"
+            integrators = 0;
+        elseif signal_type == "step"
+            integrators = 1;
+        elseif signal_type == "linear ramp"
+            integrators = 2;
+        elseif signal_type == "parabolic ramp"
+            integrators = 3;
+        else
+            fprintf("Error signal not known!");
+        end
+        
+        tutti_i_poli = pole(P);
+        
+        n_poli_origine = sum(abs(tutti_i_poli) < soglia);
+        
+        number_of_integrators = integrators - n_poli_origine;
 
 end
 

@@ -143,11 +143,11 @@ signal_type = "step";
 
 % call of the design_pid_controller function
 
-[kp, ki, kd, tl, type] = design_pid_controller_automatized(Mp,ts_5,P,alfa,wgc_p,signal_type);
+[kp, ki, kd, tl, type] = controller_design(Mp,ts_5,P,alfa,wgc_p,signal_type);
 
 %Requirements verification
 
-out = pid_metrics_automatized(P,kp,ki,kd,tl);
+out = pid_metrics(P,kp,ki,kd,tl);
 
 % Initialization of the input of LaB_0_real.slx (simulink simulations doesnt't
 % start if a value is not assigned to these parameters
@@ -164,12 +164,12 @@ var.c = 1.96;
 % Save parameters for all simulations. If you change somethings in param.m
 % file rerun the file after all saves
 
-save('Lab_0_automatized\Generated_files\parameters.mat')
+save('Lab_0\Generated_files\parameters.mat')
 
 % === CONFIGURAZIONE CARTELLE SIMULINK ===
 
 % Cartella base dove vuoi mettere TUTTI i file temporanei
-baseDir = 'Lab_0_automatized\Generated_files';
+baseDir = 'Lab_0\Generated_files';
 
 % Sottocartelle dedicate
 cacheDir   = fullfile(baseDir, 'cache');    % per file .slxc
