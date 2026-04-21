@@ -31,6 +31,7 @@ sol = M\rhs;
 
 Nx = sol(1:2);% vector
 Nu = sol(3);% scalar
+Nr = Nu + K*Nx;
 
 
 %% 2. POLI DEL CONTROLLORE STATE-FEEDBACK
