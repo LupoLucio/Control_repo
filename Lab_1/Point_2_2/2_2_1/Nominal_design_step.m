@@ -9,12 +9,6 @@ C = [1 0];
 
 D = 0;
 
-% state space model
-sys = ss(A,B,C,D);
-G = tf(sys);
-[num_G,den_G] = tfdata(G, 'v');
-
-
 % specs 2 order system
 wn = wgc;
 

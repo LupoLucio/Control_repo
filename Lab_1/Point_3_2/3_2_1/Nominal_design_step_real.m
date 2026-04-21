@@ -1,5 +1,3 @@
-
-
 % State-space matrices of gear motor
 A = [ 0      1;
 
@@ -10,12 +8,6 @@ B = [0; (drv.dcgain*mot.Kt)/(gbox.N*Req*Jeq)];
 C = [1 0];
 
 D = 0;
-
-% state space model
-sys = ss(A,B,C,D);
-G = tf(sys);
-[num_G,den_G] = tfdata(G, 'v');
-
 
 % specs 2 order system
 wn = wgc;
