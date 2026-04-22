@@ -1,4 +1,4 @@
-T = 0.001;
+T = 10e-03;
 % 1. Modello discreto (già fatto al punto 1)
 [Phi, Gam, H, J] = ssdata(c2d(ss(A,B,C,D), T, 'zoh'));
 

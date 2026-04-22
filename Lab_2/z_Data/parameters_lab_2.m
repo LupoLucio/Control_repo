@@ -159,7 +159,7 @@ kd = C_vector.Kd;
 
 ki = C_vector.Ki;
 
-tl = C_vector.Tf;
+tl = 1/(2*wgc);
 
 s = tf('s');
 
