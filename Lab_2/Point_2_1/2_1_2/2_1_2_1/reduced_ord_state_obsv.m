@@ -73,3 +73,10 @@ Do = [0, 1; 0, L];
 fprintf('\n=== Verifica ===\n');
 fprintf('Autovalore calcolato di Ao: %.2f (deve essere %.2f)\n', eig(Ao), lambda_o);
 fprintf('Dimensioni: Ao(1x1), Bo(1x2), Co(2x1), Do(2x2) ✓\n');
+
+%% 6 Matrici oservatore discreto
+
+Phi_o = 1 + Ao*T;              
+Gam_o = Bo*T;
+H_o   = Co;
+J_o   = Do;
