@@ -1,4 +1,14 @@
-T = 10e-03;
+% State-space matrices of gear motor
+A = [ 0      1;
+
+     0      -(Req*Beq+mot.Kt*mot.Ke)/(Req*Jeq)];
+
+B = [0; (drv.dcgain*mot.Kt)/(gbox.N*Req*Jeq)];
+
+C = [1 0];
+
+D = 0;
+
 % 1. Modello discreto (già fatto al punto 1)
 [Phi, Gam, H, J] = ssdata(c2d(ss(A,B,C,D), T, 'zoh'));
 
