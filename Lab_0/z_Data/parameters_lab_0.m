@@ -1,11 +1,7 @@
 clear all;
 clc;
 
-% Contains the set of all paramters given of the datasheet
-% The last parts includes the call of the PID design function and the
-% initialization of the input for simulink simulations
-
-% General parameters and conversion gains
+%% General parameters and conversion gains
 %   conversion gains
 rpm2rads = 2*pi/60;                 %   [rpm]   -> [rad/s]
 rads2rpm = 60/2/pi;                 %   [rad/s] -> [rpm]
@@ -18,7 +14,7 @@ rad2deg = 180/pi;                   %   [rad]   -> [deg]
 
 ozin2Nm = 0.706e-2;                 %   [oz*inch] -> [N*m]
 
-% DC motor nominal parameters
+%% DC motor nominal parameters
 %   brushed DC-motor Faulhaber 2338S006S
 mot.R    = 2.6;                     %   armature resistance
 mot.L    = 180e-6;                  %   armature inductance
@@ -34,7 +30,7 @@ mot.tauN = mot.Kt*mot.IN;           %   nominal torque
 mot.taus = 2.42 * ozin2Nm;          %   stall torque
 mot.w0   = 7200 * rpm2rads;         %   no-load speed
 
-% Gearbox nominal parameters
+%% Gearbox nominal parameters
 %   planetary gearbox Micromotor SA 23/1 
 gbox.N1   = 14;                     %   1st reduction ratio (planetary gearbox)
 gbox.eta1 = 0.80;                   %   gearbox efficiency 
@@ -49,7 +45,7 @@ gbox.N   = gbox.N1*gbox.N2;         %   total reduction ratio
 gbox.eta = gbox.eta1*gbox.eta2;     %   total efficiency
 gbox.J   = 3*gbox.J72;              %   total inertia (at gearbox output)
 
-% Mechanical load nominal parameters
+%% Mechanical load nominal parameters
 %   inertia disc params
 mld.JD = 3e-5;                      %   load disc inertia
 mld.BD = 0.0;                       %   load viscous coeff (n.a.)               
@@ -59,9 +55,7 @@ mld.J     = mld.JD + gbox.J;        %   total inertia
 mld.B     = 2e-6;                   %   total viscous fric coeff (estimated) 
 mld.tausf = 1.0e-2;                 %   total static friction (estimated) 
 
-
-
-% Voltage driver nominal parameters
+%% Voltage driver nominal parameters
 %   op-amp circuit params
 drv.R1 = 7.5e3;                     %   op-amp input resistor (dac to non-inverting in)
 drv.R2 = 1.6e3;                     %   op-amp input resistor (non-inverting in to gnd)
@@ -76,9 +70,7 @@ drv.dcgain = drv.R2/(drv.R1+drv.R2) * (1 + drv.R3/drv.R4);
 %   voltage driver time constant
 drv.Tc = drv.C1 * drv.R1*drv.R2/(drv.R1+drv.R2);
 
-
-
-% Sensors data
+%% Sensors data
 %   shunt resistor
 sens.curr.Rs = 0.5;   
 
@@ -99,7 +91,7 @@ sens.pot1.rad2V        = sens.pot1.range.V / sens.pot1.range.th;        %   sens
 sens.pot1.V2deg        = 1/sens.pot1.deg2V;                             %   conversion gain [V] -> [deg]
 sens.pot1.V2rad        = 1/sens.pot1.rad2V;                             %   conversion gain [V] -> [rad]
 
-% Data acquisition board (daq) data
+%% Data acquisition board (daq) data
 %   NI PCI-6221 DAC data
 daq.dac.bits = 16;                                  %   resolution (bits)
 daq.dac.fs   = 10;                                  %   full scale 
@@ -110,17 +102,14 @@ daq.adc.bits = 16;                                  %   resolution (bits)
 daq.adc.fs   = 10;                                  %   full scale (as set in SLDRT Analog Input block)
 daq.adc.q    = 2*daq.adc.fs/(2^daq.adc.bits-1);     %   quantization 
 
-
-% Sampling time
+%% Sampling time
 Ts = 1e-3;
 
-% Real derivative parameters
-
+%% Real derivative parameters
 rdp.wci = 2*3.14*20;
 rdp.di = 1/(sqrt(2));
 
-% Simplified Motor transfer function
-
+%% Simplified Motor transfer function
 km = drv.dcgain / mot.Ke;  
 Jl = mld.JD + 3*gbox.J72; 
 Req = mot.R + sens.curr.Rs;
@@ -130,52 +119,39 @@ s = tf('s');
 P = km / (s * (Tm*s + 1) * gbox.N); % Ingresso [V], Uscita [rad] 
 [numP, denP] = tfdata(P, 'v');
 
-% PID required parameters
-
+%% PID required parameters
 ts_5 = 0.15;          
 Mp = 0.05;            
 alfa = 4;
 wgc_p = 2;
 signal_type = "step";
 
-% Insert here the PID parameters or comment the parameters and uncomment and call the function
-% design_pid_controller that apply the bode method to compute kp, kd, ki, tl
-
-% call of the design_pid_controller function
-
+%% call of the design_pid_controller function
 [kp, ki, kd, tl, type] = controller_design(Mp,ts_5,P,alfa,wgc_p,signal_type);
 
-%Requirements verification
-
+%% Requirements verification
 out = pid_metrics(P,kp,ki,kd,tl);
 
-% Initialization of the input of LaB_0_real.slx (simulink simulations doesnt't
-% start if a value is not assigned to these parameters
-
+%% Simulink input selection block parameters initialization
 step_gain = 1;
 simul.select2 = 1;
 simul.select1 = 1;
 simul.stair_gain = 1;
 
-
-% parameter for confidence intervals. See Lab assignment: point 2.2) equation 12
+%% parameter for confidence intervals. See Lab assignment: point 2.2) equation 12
 var.c = 1.96;
 
-% Save parameters for all simulations. If you change somethings in param.m
-% file rerun the file after all saves
+%% Save parameters for all simulations
+save('Generated_files\parameters.mat')
 
-save('Lab_0\Generated_files\parameters.mat')
+%% Base folder where we want to put all temporary files
+baseDir = 'Generated_files';
 
-% === CONFIGURAZIONE CARTELLE SIMULINK ===
-
-% Cartella base dove vuoi mettere TUTTI i file temporanei
-baseDir = 'Lab_0\Generated_files';
-
-% Sottocartelle dedicate
+%% Dedicated subfolders
 cacheDir   = fullfile(baseDir, 'cache');    % per file .slxc
 codegenDir = fullfile(baseDir, 'codegen');  % per slprj e code generation
 
-% Crea le cartelle se non esistono
+%% Creation of the subfolders if they do not exist
 if ~exist(cacheDir, 'dir')
     mkdir(cacheDir);
 end
@@ -184,8 +160,7 @@ if ~exist(codegenDir, 'dir')
     mkdir(codegenDir);
 end
 
-% === IMPOSTAZIONE PARAMETRI GLOBALI ===
-
+%% Global parameters setting
 Simulink.fileGenControl( ...
     'set', ...
     'CacheFolder', cacheDir, ...
