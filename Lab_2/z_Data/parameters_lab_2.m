@@ -120,13 +120,12 @@ P = km / (s * (Tm*s + 1) * gbox.N); % Ingresso [V], Uscita [rad]
 [numP, denP] = tfdata(P, 'v');
 
 %% PID required parameters
-ts_5 = 0.0695;          
-Mp = 0.08;            
+ts_5 = 0.0295;          
+Mp = 0.03;            
 delta = log(1/Mp) / (sqrt(pi^2 + (log(1/Mp))^2)); 
 wgc = 3 / (delta * ts_5);
 
 wc_des = 3 / (delta * ts_5);
-
 PM_des = (180/pi) * atan( (2*delta) / sqrt( sqrt(1+4*delta^4) - 2*delta^2 ) );
 
 %% Options to impose the phase margin
@@ -142,14 +141,14 @@ kd = C_vector.Kd;
 
 ki = C_vector.Ki;
 
-tl = 1/(2*wgc);
+tl = C_vector.Tf;
 
 s = tf('s');
 
-C_s = kp + ki/s + kd*s/(1 + tl*s);
+C = kp + ki/s + kd*s/(1 + tl*s);
 
 %% Open loop TF
-L = C_s * P;
+L = C * P;
 
 [GM, PM, Wcg, Wcp] = margin(L);
 

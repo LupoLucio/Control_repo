@@ -120,8 +120,8 @@ P = km / (s * (Tm*s + 1) * gbox.N); % Ingresso [V], Uscita [rad]
 [numP, denP] = tfdata(P, 'v');
 
 %% PID required parameters
-ts_5 = 0.0695;          
-Mp = 0.08;            
+ts_5 = 0.0295;          
+Mp = 0.03;            
 delta = log(1/Mp) / (sqrt(pi^2 + (log(1/Mp))^2)); 
 wgc = 3 / (delta * ts_5);
 

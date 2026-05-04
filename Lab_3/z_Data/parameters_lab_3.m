@@ -59,6 +59,9 @@ mld.wn= 24.5;                 % flex joint natural freq (estimated)
 mld.Bb= mld.Jb * 2*mld.d*mld.wn; % beam viscous friction
 mld.k = mld.Jb * mld.wn^2;   % flex joint stiffness
 
+%total load params
+mld.JD = mld.Jh+mld.Jb;
+
 %% Voltage driver nominal parameters
 
 % op-amp circuit params
@@ -119,6 +122,80 @@ daq.dac.q    = 2*daq.dac.fs/(2^daq.dac.bits-1); % quantization
 daq.adc.bits = 16;                              % resolution (bits)
 daq.adc.fs   = 10;                              % full scale (as set in SLDRT Analog Input block)
 daq.adc.q    = 2*daq.adc.fs/(2^daq.adc.bits-1); % quantization
+
+%% Sampling time
+Ts = 1e-3;
+
+%% Real derivative parameters
+rdp.wci = 2*3.14*50;
+rdp.di = 1/(sqrt(2));
+
+%% Simplified Motor transfer function
+km = drv.dcgain / mot.Ke;  
+Jl = mld.JD + 3*gbox.J72; 
+Req = mot.R + sens.curr.Rs;
+Jeq = mot.J + Jl/(gbox.N1^2);  
+Tm = (Req * Jeq) / (mot.Kt * mot.Ke); 
+s = tf('s');
+P = km / (s * (Tm*s + 1) * gbox.N); % Ingresso [V], Uscita [rad] 
+[numP, denP] = tfdata(P, 'v');
+
+%% PID required parameters
+ts_5 = 0.0295;          
+Mp = 0.03;            
+delta = log(1/Mp) / (sqrt(pi^2 + (log(1/Mp))^2)); 
+wgc = 3 / (delta * ts_5);
+
+wc_des = 3 / (delta * ts_5);
+PM_des = (180/pi) * atan( (2*delta) / sqrt( sqrt(1+4*delta^4) - 2*delta^2 ) );
+
+%% Options to impose the phase margin
+opts = pidtuneOptions('PhaseMargin', PM_des);
+
+%% PIDF synthesis by direct specification
+C_vector = pidtune(P, 'PIDF', wc_des, opts);
+
+%% Manual PIDF construction
+kp = C_vector.Kp;
+
+kd = C_vector.Kd;
+
+ki = C_vector.Ki;
+
+tl = C_vector.Tf;
+
+s = tf('s');
+
+C = kp + ki/s + kd*s/(1 + tl*s);
+
+%% Open loop TF
+L = C * P;
+
+[GM, PM, Wcg, Wcp] = margin(L);
+
+fprintf('PIDF sintetizzato:\n');
+fprintf('  PM ottenuto = %.2f°\n', PM);
+fprintf('  wc ottenuta = %.2f rad/s\n', Wcp);
+
+margin(L)
+grid on
+
+%% Requirements verification
+out = pid_metrics(P,kp,ki,kd,tl);
+
+%% parameter for confidence intervals. See Lab assignment: point 2.2) equation 12
+var.c = 1.96;
+
+%% Additional parameters for lab 3
+u_bar_max =12;
+
+K_W = 15;
+
+Beq = mot.B+(mld.B/((gbox.N)^2));
+
+LSB_DAC = daq.dac.fs/(2^(daq.dac.bits)-1);
+
+LSB_ADC = daq.adc.fs/(2^(daq.adc.bits)-1);
 
 %% Save parameters for all simulations
 save('Generated_files\parameters.mat')
