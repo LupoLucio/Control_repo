@@ -127,7 +127,7 @@ wgc_p = 2;
 signal_type = "step";
 
 %% call of the design_pid_controller function
-[kp, ki, kd, tl, type] = controller_design(Mp,ts_5,P,alfa,wgc_p,signal_type);
+[kp, ki, kd, tl, type] = controller_design_lab_0(Mp,ts_5,P,alfa,wgc_p,signal_type);
 
 %% Requirements verification
 out = pid_metrics(P,kp,ki,kd,tl);

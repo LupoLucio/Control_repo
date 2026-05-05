@@ -1,4 +1,4 @@
-function [Kp,Ki,Kd,tl,type] = controller_design(Mp,ts_5,P,alfa,wgc_p,signal_type)
+function [Kp,Ki,Kd,tl,type] = controller_design_lab_3(Mp,ts_5,P,alfa,signal_type)
 
         % Compute the parameters
         
@@ -17,20 +17,17 @@ function [Kp,Ki,Kd,tl,type] = controller_design(Mp,ts_5,P,alfa,wgc_p,signal_type
         number_of_integrators = required_integrators_automatized(P,signal_type);
         
         
-        % Note: tl = 1 / (wgc_p * wgc); % 2 - 5 times wgc the parameter can be tuned
-        
-        
         if (number_of_integrators == 0) 
             
             if (delta_phi_deg > 0 && delta_phi_deg < 90)
         
-                [Kp,Ki,Kd,tl,type] = pd_controller_automatized(wgc_p,delta_phi_rad,delta_K,wgc);
+                [Kp,Ki,Kd,tl,type] = pd_controller_automatized(delta_phi_rad,delta_K,wgc);
 
                 fprintf("delta_phi_deg : %d , Design with PD\n", delta_phi_deg);
             
             elseif (delta_phi_deg > 0 && delta_phi_deg <180)
         
-                [Kp,Ki,Kd,tl,type] = pid_controller_automatized(alfa,wgc_p,delta_phi_rad,delta_K,wgc);
+                [Kp,Ki,Kd,tl,type] = pid_controller_automatized(alfa,delta_phi_rad,delta_K,wgc);
 
                 fprintf("delta_phi_deg : %d , Design with PID\n", delta_phi_deg);
             
@@ -38,17 +35,17 @@ function [Kp,Ki,Kd,tl,type] = controller_design(Mp,ts_5,P,alfa,wgc_p,signal_type
                  fprintf("Design with PID is not possible");
             end
         
-        elseif (number_of_integrators == 1) && (delta_phi_deg < 0 && delta_phi_deg > -90)
+        elseif (number_of_integrators == 1)
         
             if (delta_phi_deg < 0 && delta_phi_deg > -90)
         
-                [Kp,Ki,Kd,tl,type] = pi_controller_automatized(wgc_p,delta_phi_rad,delta_K,wgc);
+                [Kp,Ki,Kd,tl,type] = pi_controller_automatized(delta_phi_rad,delta_K,wgc);
 
                 fprintf("delta_phi_deg %d : , Design with PI\n", delta_phi_deg);
                 
             elseif (delta_phi_deg > 0 && delta_phi_deg <180)
             
-                [Kp,Ki,Kd,tl,type] = pid_controller_automatized(alfa,wgc_p,delta_phi_rad,delta_K,wgc);
+                [Kp,Ki,Kd,tl,type] = pid_controller_automatized(alfa,delta_phi_rad,delta_K,wgc);
 
                 fprintf("delta_phi_deg %d : , Design with PID\n", delta_phi_deg);
         
@@ -67,35 +64,34 @@ function [Kp,Ki,Kd,tl,type] = controller_design(Mp,ts_5,P,alfa,wgc_p,signal_type
 end
 
 
-function [kp,ki,kd,tl,type] = pd_controller_automatized(wgc_p,delta_phi_rad,delta_K,wgc)
+function [kp,ki,kd,tl,type] = pd_controller_automatized(delta_phi_rad,delta_K,wgc)
 
         kp = delta_K * cos(delta_phi_rad);
         kd = (delta_K * sin(delta_phi_rad)) / wgc;
         ki = 0;
         type = 'PD';
-        tl = 1 / (wgc_p * wgc); 
+        tl = 1 / (10 * wgc); 
 end
 
 
-function [kp,ki,kd,tl,type] = pi_controller_automatized(wgc_p,delta_phi_rad,delta_K,wgc)
+function [kp,ki,kd,tl,type] = pi_controller_automatized(delta_phi_rad,delta_K,wgc)
 
         type = 'PI';
         kp = delta_K * cos(delta_phi_rad);
         ki = -wgc * delta_K * sin(delta_phi_rad);
         kd = 0;
-        tl = 1 / (wgc_p * wgc); 
+        tl = 1 / (10 * wgc); 
 end
 
 
-function [kp,ki,kd,tl,type] = pid_controller_automatized(alfa,wgc_p,delta_phi_rad,delta_K,wgc)
+function [kp,ki,kd,tl,type] = pid_controller_automatized(alfa,delta_phi_rad,delta_K,wgc)
         type = 'PID';
         Td = (tan(delta_phi_rad) + sqrt(tan(delta_phi_rad)^2 + 4/alfa)) / (2 * wgc); 
         Ti = alfa * Td; 
         kp = delta_K * cos(delta_phi_rad); 
         ki = kp / Ti;
         kd = kp * Td;
-        tl = 1 / (wgc_p * wgc); 
-
+        tl = 1 / (10 * wgc); 
 end
 
 

@@ -60,7 +60,8 @@ mld.Bb= mld.Jb * 2*mld.d*mld.wn; % beam viscous friction
 mld.k = mld.Jb * mld.wn^2;   % flex joint stiffness
 
 %total load params
-mld.JD = mld.Jh+mld.Jb;
+mld.J = mld.Jh+mld.Jb;
+mld.B = mld.Bh + mld.Bb;
 
 %% Voltage driver nominal parameters
 
@@ -132,44 +133,41 @@ rdp.di = 1/(sqrt(2));
 
 %% Simplified Motor transfer function
 km = drv.dcgain / mot.Ke;  
-Jl = mld.JD + 3*gbox.J72; 
+Jl = mld.J + 3*gbox.J72; 
 Req = mot.R + sens.curr.Rs;
-Jeq = mot.J + Jl/(gbox.N1^2);  
+Jeq = mot.J + Jl/(gbox.N1^2); 
+Beq = mot.B+(mld.B/((gbox.N)^2));
 Tm = (Req * Jeq) / (mot.Kt * mot.Ke); 
 s = tf('s');
-P = km / (s * (Tm*s + 1) * gbox.N); % Ingresso [V], Uscita [rad] 
-[numP, denP] = tfdata(P, 'v');
+term_1 = drv.dcgain/(1+drv.Tc*s);
+term_2 = 1/(gbox.N*s);
+num_3 = mot.Kt*((mld.Jb*s^2)+(mld.Bb*s)+mld.k);
+a1 = Jeq*mld.Jb;
+a2 = Jeq*mld.Bb+mld.Jb*Beq;
+a3 = Beq*mld.Bb+mld.k*(Jeq+((mld.Jb)/((gbox.N)^2)));
+a4 = mld.k*(Beq+((mld.Bb)/((gbox.N)^2)));
+D_tau_prime = a1*s^3+a2*s^2+a3*s+a4;
+den_3 = D_tau_prime*(mot.L*s+Req)+mot.Kt*mot.Ke*((mld.Jb*s^2)+(mld.Bb*s)+mld.k);
+term_3 = num_3/den_3;
+P_u_theta_h = term_1*term_2*term_3;
 
 %% PID required parameters
-ts_5 = 0.0295;          
-Mp = 0.03;            
+ts_5 = 0.45;
+K_W = 5/ts_5;
+Mp = 0.05;            
 delta = log(1/Mp) / (sqrt(pi^2 + (log(1/Mp))^2)); 
-wgc = 3 / (delta * ts_5);
+alpha = 4;
 
-wc_des = 3 / (delta * ts_5);
-PM_des = (180/pi) * atan( (2*delta) / sqrt( sqrt(1+4*delta^4) - 2*delta^2 ) );
+signal_type = "linear ramp";
 
-%% Options to impose the phase margin
-opts = pidtuneOptions('PhaseMargin', PM_des);
-
-%% PIDF synthesis by direct specification
-C_vector = pidtune(P, 'PIDF', wc_des, opts);
-
-%% Manual PIDF construction
-kp = C_vector.Kp;
-
-kd = C_vector.Kd;
-
-ki = C_vector.Ki;
-
-tl = C_vector.Tf;
+[kp, ki, kd, tl, type] = controller_design_lab_3(Mp,ts_5,P_u_theta_h,alpha,signal_type);
 
 s = tf('s');
 
 C = kp + ki/s + kd*s/(1 + tl*s);
 
 %% Open loop TF
-L = C * P;
+L = C * P_u_theta_h;
 
 [GM, PM, Wcg, Wcp] = margin(L);
 
@@ -181,17 +179,13 @@ margin(L)
 grid on
 
 %% Requirements verification
-out = pid_metrics(P,kp,ki,kd,tl);
+out = pid_metrics(P_u_theta_h,kp,ki,kd,tl);
 
 %% parameter for confidence intervals. See Lab assignment: point 2.2) equation 12
 var.c = 1.96;
 
 %% Additional parameters for lab 3
 u_bar_max =12;
-
-K_W = 15;
-
-Beq = mot.B+(mld.B/((gbox.N)^2));
 
 LSB_DAC = daq.dac.fs/(2^(daq.dac.bits)-1);
 
