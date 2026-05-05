@@ -60,8 +60,8 @@ mld.Bb= mld.Jb * 2*mld.d*mld.wn; % beam viscous friction
 mld.k = mld.Jb * mld.wn^2;   % flex joint stiffness
 
 %total load params
-mld.J = mld.Jh+mld.Jb;
-mld.B = mld.Bh + mld.Bb;
+mld.J = gbox.J + mld.Jh + mld.Jb;
+mld.B = 2e-6 + mld.Bh + mld.Bb;
 
 %% Voltage driver nominal parameters
 
@@ -150,12 +150,12 @@ D_tau_prime = a1*s^3+a2*s^2+a3*s+a4;
 den_3 = D_tau_prime*(mot.L*s+Req)+mot.Kt*mot.Ke*((mld.Jb*s^2)+(mld.Bb*s)+mld.k);
 term_3 = num_3/den_3;
 P_u_theta_h = term_1*term_2*term_3;
+[num_P_u_theta_h, den_P_u_theta_h] = tfdata(P_u_theta_h, 'v'); 
 
 %% PID required parameters
 ts_5 = 0.45;
 K_W = 5/ts_5;
 Mp = 0.05;            
-delta = log(1/Mp) / (sqrt(pi^2 + (log(1/Mp))^2)); 
 alpha = 4;
 
 signal_type = "linear ramp";
@@ -168,6 +168,7 @@ C = kp + ki/s + kd*s/(1 + tl*s);
 
 %% Open loop TF
 L = C * P_u_theta_h;
+H = L/(1+L);
 
 [GM, PM, Wcg, Wcp] = margin(L);
 
