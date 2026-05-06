@@ -59,10 +59,6 @@ mld.wn= 24.5;                 % flex joint natural freq (estimated)
 mld.Bb= mld.Jb * 2*mld.d*mld.wn; % beam viscous friction
 mld.k = mld.Jb * mld.wn^2;   % flex joint stiffness
 
-%total load params
-mld.J = gbox.J + mld.Jh + mld.Jb;
-mld.B = 2e-6 + mld.Bh + mld.Bb;
-
 %% Voltage driver nominal parameters
 
 % op-amp circuit params
@@ -132,11 +128,10 @@ rdp.wci = 2*3.14*50;
 rdp.di = 1/(sqrt(2));
 
 %% Simplified Motor transfer function
-km = drv.dcgain / mot.Ke;  
-Jl = mld.J + 3*gbox.J72; 
+km = drv.dcgain / mot.Ke;   
 Req = mot.R + sens.curr.Rs;
-Jeq = mot.J + Jl/(gbox.N1^2); 
-Beq = mot.B+(mld.B/((gbox.N)^2));
+Jeq = mot.J + mld.Jh / (gbox.N^2);
+Beq = mot.B + mld.Bh / (gbox.N^2); 
 Tm = (Req * Jeq) / (mot.Kt * mot.Ke); 
 s = tf('s');
 term_1 = drv.dcgain/(1+drv.Tc*s);
