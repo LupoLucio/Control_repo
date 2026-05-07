@@ -1,131 +1,95 @@
-% 1. Parametri di Specifica
-ts = 0.85;   % Settling time massimo [s]
-Mp = 0.30;   % Overshoot massimo [adimensionale]
+%% 1. Specifiche e Geometria Regione Ammissibile
+ts_max = 0.85;  % [s]
+Mp_max = 0.30;  % [adim]
 
-% Calcolo parametri geometrici della regione ammissibile
-delta_val = log(1/Mp) / sqrt(pi^2 + log(1/Mp)^2);
-wn        = 3 / (delta_val * ts);
+delta_val = log(1/Mp_max) / sqrt(pi^2 + log(1/Mp_max)^2);
+wn_min    = 3 / (delta_val * ts_max);
 phi       = atan(sqrt(1 - delta_val^2) / delta_val);
-sigma_min = -3 / ts;  % Parte reale massima ammissibile (verticale)
+sigma_lim = -3 / ts_max;  % Re(λ) <= -3.529
 
-fprintf('📐 Geometria Regione Ammissibile:\n');
-fprintf('   σ <= %.2f rad/s\n', sigma_min);
-fprintf('   Angolo φ  = %.2f° (Smorzamento δ = %.3f)\n', rad2deg*phi, delta_val);
+fprintf('📐 Regione Ammissibile:\n');
+fprintf('   Re(λ) <= %.3f rad/s\n', sigma_lim);
+fprintf('   Smorzamento δ >= %.3f  (φ = %.2f°)\n\n', delta_val, rad2deg*phi);
 
-% 2. Costruzione Modelli per SRL
-% L'Assignment richiede C = [1 0 0 0] per pesare solo la posizione dell'hub
-delta_B = mld.Bh + (mot.Kt * mot.Ke) / Req;
-u_gain  = (mot.Kt * drv.dcgain) / (gbox.N * Jeq * Req);
-
+%% 2. Modello State-Space (Assicurati che le variabili siano nel workspace)
 A_prime = zeros(4);
 
 A_prime(1,3) = 1;
 A_prime(2,4) = 1;
-
-A_prime(3,2) =  mld.k / (gbox.N^2 * Jeq);
-A_prime(3,3) = -delta_B / Jeq;
-A_prime(3,4) = -mld.k / (gbox.N^2 * Jeq);
-
-A_prime(4,2) = -mld.k / mld.Jb;
-A_prime(4,3) =  delta_B / Jeq;
-A_prime(4,4) = -mld.Bb / mld.Jb;
+A_prime(3,2) =  mld.k/(gbox.N^2 * Jeq);
+A_prime(3,3) = -(1/Jeq) * (Beq + (mot.Kt*mot.Ke)/Req);
+A_prime(4,2) = -(mld.k/mld.Jb)-(mld.k/(Jeq*gbox.N^2));
+A_prime(4,3) = -(mld.Bb/mld.Jb)+(1/Jeq) * (Beq + (mot.Kt*mot.Ke)/Req);
+A_prime(4,4) = -mld.Bb/mld.Jb;
 
 B_prime = [0;
            0;
-           u_gain;
-           0];
+           (mot.Kt*drv.dcgain)/(gbox.N*Jeq*Req);
+          -(mot.Kt*drv.dcgain)/(gbox.N*Jeq*Req)];
 
 C = [1 0 0 0];
 D = 0;
 
-% Modello normale G(s)
-sysG = ss(A_prime, B_prime, C, D);
-% Modello "specchio" G(-s) richiesto per il SRL
-sysGp = ss(-A_prime, -B_prime, C, D);
+sysG  = ss(A_prime, B_prime, C, D);
+sysGp = ss(-A_prime, -B_prime, C, D); % G(-s)
+sysL  = sysGp * sysG;     % Loop per SRL
 
-% La funzione di loop per il SRL è L(s) = G(-s)G(s)
-% Il luogo delle radici è tracciato rispetto al guadagno k = 1/r
-sys_loop = sysGp * sysG;
+%% 3. Plot SRL + Regione Ammissibile
+figure('Name','SRL - Scelta peso r','Color','w','Position',[100 100 800 600]);
+rlocus(sysL); hold on; grid on;
 
-% 3. Plot del Symmetric Root Locus
-figure('Name', 'Symmetric Root Locus (SRL) Design', 'Color', 'w');
-
-% Tracciamo il luogo delle radici
-% Nota: rlocus traccia rispetto a k. Qui k = 1/r.
-[k_vals, poles] = rlocus(sys_loop);
-
-hold on; grid on;
-
-% --- Disegno della Regione Ammissibile ---
-% Linea verticale σ = sigma_min
-plot([sigma_min, sigma_min], [-80, 80], 'r--', 'LineWidth', 1.5, 'DisplayName', 'Limite ts (σ)');
-
-% Linee oblique ±φ (smorzamento Mp)
-% Partono dall'origine (0,0)
-line_re = [-2, 0];
-line_im_up = [-2 * tan(phi), 0];
-line_im_dw = [2 * tan(phi), 0];
-
-plot(line_re, line_im_up, 'r:', 'LineWidth', 1.5, 'DisplayName', 'Limite Mp (+φ)');
-plot(line_re, line_im_dw, 'r:', 'LineWidth', 1.5, 'DisplayName', 'Limite Mp (-φ)');
-
-% Evidenziamo la zona ammissibile (triangolo verso sinistra)
-x_fill = [-80, sigma_min, sigma_min];
-y_fill = [80, 80*tan(phi), -80*tan(phi)];
-patch(x_fill, y_fill, 'g', 'FaceAlpha', 0.1, 'EdgeColor', 'none', 'DisplayName', 'Regione Ammissibile');
-
-plot(poles, 'bx', 'MarkerSize', 4);
-title('Symmetric Root Locus: Scelta del peso r (guadagno plot = 1/r)');
+% Disegno settore ammissibile
+r_max = 60;
+x_sec = [sigma_lim, -r_max, -r_max, sigma_lim];
+y_sec = [r_max*tan(phi), r_max*tan(phi), -r_max*tan(phi), -r_max*tan(phi)];
+fill(x_sec, y_sec, 'g', 'FaceAlpha', 0.12, 'EdgeColor', 'none', 'DisplayName','Regione Ammissibile');
+xline(sigma_lim, 'r--', 'LineWidth',1.5, 'DisplayName','Limite ts (σ)');
+plot([0 sigma_lim], [0 sigma_lim*tan(phi)], 'r:', 'LineWidth',1.5, 'DisplayName','Limite Mp (+φ)');
+plot([0 sigma_lim], [0 -sigma_lim*tan(phi)], 'r:', 'LineWidth',1.5, 'DisplayName','Limite Mp (-φ)');
+xlim([-60 10]); ylim([-60 60]);
+title('Symmetric Root Locus: Scelta di r (guadagno plot k = 1/r)');
 xlabel('Real Axis'); ylabel('Imaginary Axis');
-legend('Location', 'Best');
-xlim([-60, 10]); ylim([-60, 60]);
+legend('Location','Best');
 
-% 4. Scelta del peso r (Trial & Error o Analisi Grafica)
-% Il guadagno k nel plot di rlocus corrisponde a 1/r.
-% Dobbiamo scegliere k (e quindi r = 1/k) tale che i poli siano nella zona verde.
+%% 4. Scelta di r (Opzione A: Interattiva con rlocfind)
+fprintf('💡 CLICCA con il mouse all''interno della zona verde per scegliere k = 1/r...\n');
+[k_chosen, ~] = rlocfind(sysL); % Attende il click
+r_chosen = 1/k_chosen;
+fprintf('✅ k scelto = %.3e  →  r = %.3e\n\n', k_chosen, r_chosen);
 
-% Esempio: proviamo a trovare un k che metta i poli circa a sigma_min
-% Possiamo usare rlocfind per cliccare sul grafico e scegliere k, 
-% oppure calcolarlo per tentativi. Qui propongo un valore tipico.
+%% 5. Calcolo LQR e Verifica Specifiche
+% lqry minimizza ∫(y^2 + r u^2) dt → corrisponde a J = ∫(ϑh^2 + r u^2) dt
+K = lqry(sysG, 1, r_chosen);
 
-% Supponiamo di voler i poli dominanti con parte reale = -4.5 (più veloce di -3.53)
-% Calcoliamo la K associata a un certo k (es. k=100) per vedere dove siamo
-test_k = 1e+07; 
-test_r = 1/test_k;
-
-fprintf('\n🎯 Scelta peso r:\n');
-fprintf('   Proviamo r = %.2e (guadagno k = %.2f)\n', test_r, test_k);
-
-% Calcolo LQR con il r scelto
-% Usiamo lqry perché la penalità è sull'uscita y = C*x (var_theta_h^2)
-K = lqry(sysG, 1, test_r);
-
-% Verifica autovalori
+% Verifica poli anello chiuso
 sys_cl = ss(A_prime - B_prime*K, B_prime, C, D);
-closed_poles = eig(sys_cl);
+p_cl   = eig(sys_cl);
+re_p   = real(p_cl);
+im_p   = imag(p_cl);
+mag_p  = abs(p_cl);
+zeta_p = -re_p ./ mag_p; % Smorzamento effettivo
 
-fprintf('   Poli anello chiuso: \n');
-disp(closed_poles);
+fprintf('🔍 Verifica Poli Anello Chiuso:\n');
+for i=1:length(p_cl)
+    fprintf('   λ%d = %+.3f %+.3fj  |  Re=%+.3f  |  ζ=%.3f\n', ...
+        i, re_p(i), im_p(i), re_p(i), zeta_p(i));
+end
 
-% Controllo se sono nella regione
-max_real = max(real(closed_poles));
-fprintf('   Max(Parte Reale) = %.2f (Richiesto <= %.2f) -> %s\n', ...
-    max_real, sigma_min, string(max_real <= sigma_min));
+viol_ts = any(re_p > sigma_lim);
+viol_Mp = any(zeta_p < delta_val & abs(im_p) > 0.1); % Ignora poli reali puri
 
-% Plot dei poli calcolati sul grafico
-plot(real(closed_poles), imag(closed_poles), 'ro', 'MarkerSize', 8, 'LineWidth', 2, 'DisplayName', 'Poli scelti (r attuale)');
+if ~viol_ts && ~viol_Mp
+    fprintf('✅ TUTTE LE SPECIFICHE SONO SODDISFATTE.\n');
+else
+    fprintf('⚠️  Specifiche NON soddisfatte. Riprova con un k più alto (r più basso).\n');
+end
 
-% 5. Calcolo Feedforward Kff per Tracking Nominale
-% L'Assignment richiede "nominal perfect tracking"
-% Anche con LQR serve il pre-filtro Kff se non c'è azione integrale
-sys_cl_nom = ss(A_prime - B_prime*K, B_prime, C, D);
-dc_gain = dcgain(sys_cl_nom);
-Kff = 1 / dc_gain;
+%% 6. Feedforward per Tracking Nominale
+Kff = 1 / dcgain(sys_cl);
+fprintf('\n📦 Guadagni da implementare:\n');
+fprintf('   K   = [%.4f, %.4f, %.4f, %.4f]\n', K);
+fprintf('   Kff = %.4f\n', Kff);
 
-fprintf('\n✅ Risultato Finale:\n');
-fprintf('   Matrice K = [%.4f, %.4f, %.4f, %.4f]\n', K);
-fprintf('   Feedforward Kff = %.4f\n', Kff);
-
-% Salvataggio nel workspace
-assignin('base', 'K_lqr', K);
-assignin('base', 'Kff_lqr', Kff);
+% Salvataggio workspace
+assignin('base','K_lqr', K);
+assignin('base','Kff_lqr', Kff);

@@ -1,52 +1,44 @@
-delta_B = mld.Bh + (mot.Kt * mot.Ke) / Req;
-u_gain  = (mot.Kt * drv.dcgain) / (gbox.N * Jeq * Req);
-
 A_prime = zeros(4);
 
 A_prime(1,3) = 1;
 A_prime(2,4) = 1;
-
-A_prime(3,2) =  mld.k / (gbox.N^2 * Jeq);
-A_prime(3,3) = -delta_B / Jeq;
-A_prime(3,4) = -mld.k / (gbox.N^2 * Jeq);
-
-A_prime(4,2) = -mld.k / mld.Jb;
-A_prime(4,3) =  delta_B / Jeq;
-A_prime(4,4) = -mld.Bb / mld.Jb;
+A_prime(3,2) =  mld.k/(gbox.N^2 * Jeq);
+A_prime(3,3) = -(1/Jeq) * (Beq + (mot.Kt*mot.Ke)/Req);
+A_prime(4,2) = -(mld.k/mld.Jb)-(mld.k/(Jeq*gbox.N^2));
+A_prime(4,3) = -(mld.Bb/mld.Jb)+(1/Jeq) * (Beq + (mot.Kt*mot.Ke)/Req);
+A_prime(4,4) = -mld.Bb/mld.Jb;
 
 B_prime = [0;
            0;
-           u_gain;
-           0];
+           (mot.Kt*drv.dcgain)/(gbox.N*Jeq*Req);
+          -(mot.Kt*drv.dcgain)/(gbox.N*Jeq*Req)];
 
 C = [1 0 0 0];
 D = 0;
-
-disp('A_prime ='); disp(A_prime);
-disp('B_prime ='); disp(B_prime);
 
 %% ============================================================
 % 2. Specifiche → poli desiderati (eq. 8-10)
 % ============================================================
 
-ts  = 0.65;   % Settling time richiesto
-Mp  = 0.25;   % Overshoot max
+ts  = 0.85;   % Settling time richiesto
+Mp  = 0.3;   % Overshoot max
 
-delta_val = log(1/Mp) / sqrt(pi^2 + log(1/Mp)^2);
-wn        = 3 / (delta_val * ts);
+delta_val = (log(1/Mp)) / (sqrt(pi^2 + (log(1/Mp))^2));
+wn = 3 / (delta_val * ts);
+phi = atan((sqrt(1-(delta_val^2))) / (delta_val));
 
 % Coppia dominante
 sigma = -delta_val * wn;
 wd    =  wn * sqrt(1 - delta_val^2);
 
-p1 = sigma + 1i*wd;
-p2 = sigma - 1i*wd;
-
-% Coppia secondaria (più veloce)
-p3 = 2*sigma + 1i*(2*wd);
-p4 = 2*sigma - 1i*(2*wd);
+p1 = wn*exp(1i*(-pi+phi));
+p2 = wn*exp(1i*(-pi-phi));
+p3 = wn*exp(1i*(-pi+(phi/2)));
+p4 = wn*exp(1i*(-pi-(phi/2)));
 
 desired_poles = [p1 p2 p3 p4];
+
+%desired_poles = [-8.12-5.58*1i,-3.52-9.2*1i,-8.12+5.58*1i,-3.52+9.2*1i];
 
 disp('Poli desiderati ='); disp(desired_poles.');
 

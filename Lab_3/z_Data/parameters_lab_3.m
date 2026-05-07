@@ -148,9 +148,9 @@ P_u_theta_h = term_1*term_2*term_3;
 [num_P_u_theta_h, den_P_u_theta_h] = tfdata(P_u_theta_h, 'v'); 
 
 %% PID required parameters
-ts_5 = 0.45;
+ts_5 = 0.85;
 K_W = 5/ts_5;
-Mp = 0.05;            
+Mp = 0.3;            
 alpha = 4;
 
 signal_type = "linear ramp";
