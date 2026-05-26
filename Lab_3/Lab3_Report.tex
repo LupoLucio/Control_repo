@@ -1,0 +1,646 @@
+\documentclass[11pt]{article}
+
+% -------------------------------------------------------------------------------- %
+
+% *** LANGUAGE ***
+%\usepackage[italian]{babel}
+
+% *** PAGE LAYOUT ***
+\usepackage{geometry}
+\geometry{a4paper,tmargin=2cm,bmargin=2cm,lmargin=2.5cm,rmargin=2.5cm}
+
+% *** DEFAULT FONT SELECTION ***
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\renewcommand*\familydefault{\sfdefault}
+
+% *** GRAPHICS ***
+\usepackage{graphicx}
+\usepackage{xcolor}
+\usepackage{tikz}
+\usetikzlibrary{plotmarks}
+\usepackage{pgfplots}
+\pgfplotsset{compat=newest}
+\pgfplotsset{plot coordinates/math parser=false}
+\pgfplotsset{ grid style = {
+    loosely dotted,
+    line cap = round,
+    black,
+    line width = 0.5pt
+  }
+}
+\usepackage[caption=false, font=footnotesize]{subfig}
+\usepackage{float}
+
+% *** AMS MATH ***
+\usepackage{amsmath, amsfonts, amssymb}
+\usepackage{empheq}
+\usepackage{mathabx}
+
+% *** TABLES ***
+\usepackage{booktabs,topcapt}
+\usepackage{multirow}
+
+% *** TEXT FORMATTING ***
+\usepackage[bottom]{footmisc}
+
+% *** LISTS ***
+\usepackage[shortlabels]{enumitem}
+
+% *** LINE SPACING ***
+\usepackage{setspace}
+
+% *** PAGE NUMBERING ***
+\usepackage{lastpage}
+
+% *** SI UNITS ***
+\usepackage{siunitx}
+
+% *** BIBLIO ***
+\usepackage{cite}
+
+% *** MATLAB CODE ***
+\usepackage{bigfoot}
+\usepackage[numbered,framed]{matlab-prettifier}
+
+\lstset{
+backgroundcolor=\color[RGB]{247,247,247},
+style=Matlab-editor,
+basicstyle=\mlttfamily\scriptsize,
+morekeywords={matlab2tikz},
+keywordstyle=\color{blue},
+morekeywords=[2]{1},
+morekeywords={function},
+keywordstyle=[2]{\color{black}},
+identifierstyle=\color{black},
+showstringspaces=false,
+numbers=left,
+numberstyle={\scriptsize \color[RGB]{147,147,147}},
+numbersep=7pt,
+aboveskip=16pt,
+belowskip=16pt
+}
+
+\usepackage{verbatim}
+\makeatletter
+\def\verbatim@font{\ttfamily\scriptsize}
+\makeatother
+
+% *** OTHER ***
+\usepackage{printlen}
+\usepackage{tcolorbox}
+\usepackage{import}
+
+% *** EXTRA COMMANDS ***
+\DeclareRobustCommand{\vect}[1]{ \boldsymbol{#1} }
+\interfootnotelinepenalty=10000
+
+% Notation shortcuts
+\newcommand{\thh}{\vartheta_h}
+\newcommand{\thb}{\vartheta_b}
+\newcommand{\thd}{\vartheta_d}
+\newcommand{\Jeq}{J_\mathrm{eq}}
+\newcommand{\Beq}{B_\mathrm{eq}}
+\newcommand{\wgc}{\omega_{gc}}
+\newcommand{\wn}{\omega_n}
+
+% -------------------------------------------------------------------------------- %
+
+\title{
+    {\Large Laboratory Report 3: Position Control of a DC Servomotor with Resonant Load}
+}
+\author{
+    Name Lastname;\quad email: \texttt{\{name.lastname\}@unipd.it}\\[2pt]
+    Group:~\texttt{[GROUP]},\quad Shift:~\texttt{[SHIFT]},\quad
+    Members:~\texttt{[Lucio Farinati, Andrea Fasolo, Enrico Bassani, Francesco Bau]}
+}
+
+% -------------------------------------------------------------------------------- %
+
+\usepackage{fancyhdr}
+\lhead{} \chead{} \rhead{}
+\lfoot{}
+\cfoot{\textit{\scriptsize University of Padova}}
+\rfoot{\scriptsize \thepage/\pageref{LastPage}}
+\renewcommand{\headrulewidth}{0pt}
+\renewcommand{\footrulewidth}{0pt}
+
+% -------------------------------------------------------------------------------- %
+
+\hyphenation{op-tical net-works semi-conduc-tor}
+
+\begin{document}
+
+\maketitle
+\pagestyle{fancy}
+\setcounter{page}{1}
+\onehalfspacing
+
+\sisetup{math-rm=\mathrm, text-rm=\rmfamily}
+
+% ============================================================ %
+\section{Introduction}
+% ============================================================ %
+
+\subsection{Activity Goal}
+
+This report documents the work carried out in Laboratory~3 of the Control Engineering course.
+The central objective is to synthesise angular-position controllers for a DC gearmotor whose
+output shaft drives a compliant mechanical load — specifically, a rigid beam attached through
+a torsional spring (elastic joint) rather than through a rigid coupling.
+Such a configuration introduces a resonant mode into the plant dynamics, making the
+control problem considerably more challenging than the single-inertia case addressed in
+previous sessions.
+
+Three controller families are investigated. A frequency-domain PID approach is applied first
+because of its industrial prevalence and straightforward tuning via loop-shaping. Two
+state-space alternatives are then explored: a pole-placement technique, which allows direct
+assignment of the closed-loop eigenvalues, and an LQR-based optimisation strategy, which
+trades off regulation performance against control effort through a quadratic cost criterion.
+
+\subsection{System and Model}
+
+\subsubsection*{Physical description}
+
+% [TODO] Insert a labelled photograph or schematic of the experimental bench.
+% At minimum, identify: (1) rigid beam, (2) elastic joint, (3) hub with potentiometer 2.
+
+\begin{figure}[H]
+    \centering
+    % \includegraphics[width=0.62\textwidth]{figures/setup_lab3.jpg}
+    \caption{Experimental bench: Quanser SRV-02 gearmotor fitted with the resonant-load
+             attachment. Component labels --- (1) rigid beam, (2) pre-tensioned leaf-spring
+             joint, (3) hub carrying potentiometer~2.}
+    \label{fig:setup}
+\end{figure}
+
+The mechanical plant consists of a brushed DC motor (Faulhaber~2338S006S) connected to a
+$N{=}14$ planetary gearbox, whose output shaft carries an aluminium hub of rotational
+inertia~$J_h$.  A torsional spring (stiffness~$k$) couples the hub to an aluminium beam of
+inertia~$J_b$, so that relative angular deflection $\thd = \thb - \thh$ can build up when
+the hub accelerates.  Hub angular position~$\thh$ is sensed by an incremental quadrature
+optical encoder ($500\,\text{ppr}$, ${\times}4$ decoding, $0.18\,\si{\degree/pulse}$).
+Beam deflection~$\thd$ is converted to a voltage by a potentiometer mounted coaxially with
+the joint pivot (potentiometer~2), subsequently digitised by a 16-bit ADC with
+${\pm}10\,\si{V}$ range; the angular-to-voltage sensitivity is
+$2.5\,\si{V}/170\,\si{\degree}$.
+
+\subsubsection*{Mathematical model}
+
+Neglecting the fast electrical and driver transients
+($L_a/R_\mathrm{eq} \ll 1$, $T_\mathrm{drv} \ll 1$),
+the translational-analogy equations for the two rotating bodies reduce to:
+\begin{align}
+    N^2 \Jeq\,\ddot{\thh} + N^2 \Beq\,\dot{\thh} + k\,\thh - k\,\thb
+        &= \frac{N k_t k_\mathrm{drv}}{R_\mathrm{eq}}\,u - \tau_{d,h},
+        \label{eq:hub}\\
+    J_b\,\ddot{\thb} + B_b\,\dot{\thb} + k\,\thb - k\,\thh &= 0,
+    \label{eq:beam}
+\end{align}
+where $\Jeq = J_m + J_h/N^2$ and $\Beq = B_m + B_h/N^2$ collect the inertia and viscous
+damping referred to the load side, $u$~is the voltage command to the driver, and
+$\tau_{d,h}$ lumps the Coulomb friction acting at the hub.  The restoring torque transmitted
+through the elastic joint is $\tau_e = k\,(\thh - \thb)$.
+
+Selecting $\vect{x}' = [\thh,\;\thd,\;\dot{\thh},\;\dot{\thd}]^T$ as state vector yields
+the linear time-invariant model
+\begin{equation}
+    \dot{\vect{x}}' = A'\,\vect{x}' + B'\,u + B'_d\,\tau_{d,h}.
+    \label{eq:ss}
+\end{equation}
+The explicit expressions for $A'$, $B'$, $B'_d$ are given in (52)--(54) of the theoretical
+background document.  All symbols are defined in Table~\ref{tab:symbols}.
+
+\begin{table}[H]
+\centering
+\caption{Notation for the resonant-load model.}
+\label{tab:symbols}
+\begin{tabular}{lll}
+\toprule
+Symbol & Meaning & Units \\
+\midrule
+$\thh$, $\thb$, $\thd$ & Hub, beam, and relative (deflection) angular positions & rad \\
+$J_h$, $J_b$           & Hub and beam rotational inertia                         & \si{kg.m^2} \\
+$B_h$, $B_b$           & Viscous damping at hub and beam                         & \si{N.m.s/rad} \\
+$k$                    & Torsional stiffness of the elastic joint                 & \si{N.m/rad} \\
+$\tau_{d,h}$           & Coulomb-friction disturbance torque at hub side          & \si{N.m} \\
+$N$                    & Gearbox reduction ratio                                  & -- \\
+$k_t$, $k_\mathrm{drv}$ & Motor torque constant, driver DC gain                  & \si{N.m/A}, -- \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[H]
+\centering
+\caption{Numerical values of the resonant-load parameters used in simulation.
+         Starred entries (${}^*$) are initial guesses; Section~\ref{sec:estimation} reports
+         the experimentally refined values.}
+\label{tab:params}
+\begin{tabular}{llll}
+\toprule
+Parameter & Symbol & Value & Source \\
+\midrule
+Hub inertia             & $J_h$         & $6.84\times10^{-4}$~\si{kg.m^2} & nominal (Al hub) \\
+Hub viscous damping     & $B_h$         & from Lab~0                       & identified \\
+Coulomb friction        & $\tau_{sf}$   & from Lab~0                       & identified \\
+Beam inertia            & $J_b$         & $1.40\times10^{-3}$~\si{kg.m^2} & nominal \\
+Beam viscous damping$^*$& $B_b$         & $3.4\times10^{-3}$~\si{N.m.s/rad} & initial guess \\
+Joint stiffness$^*$     & $k$           & $0.83$~\si{N.m/rad}              & initial guess \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+% ============================================================ %
+\section{Tasks, Methodologies and Results}
+% ============================================================ %
+
+% ============================================================ %
+\subsection{Simulink Model of the Two-Mass Drive (Task~2.1)}
+% ============================================================ %
+
+A discrete-time Simulink model was assembled to reproduce the closed-loop behaviour of the
+complete electromechanical chain.  The model is structured into four communicating
+subsystems: (i)~the \emph{drive}, which chains the DAC zero-order hold, the voltage
+amplifier, the motor electrical dynamics, and the gearbox; (ii)~the \emph{mechanical
+plant}, implementing equations~\eqref{eq:hub}--\eqref{eq:beam} in state-space form;
+(iii)~the \emph{encoder}, performing quadrature counting and scaling; and (iv)~the
+\emph{beam-deflection channel}, which applies the potentiometer gain and superimposes
+zero-mean white Gaussian noise ($\sigma^2 = 3.5\times10^{-7}\,\si{V^2}$) followed by ADC
+saturation and quantisation.  System-level screenshots appear in Appendix~\ref{app:simulink}.
+
+All numerical constants were initialised through a single MATLAB script
+(\texttt{load\_params\_resonant\_case.m}); the parameter set is reported in
+Appendix~\ref{app:code}.  During the simulation phase (Tasks~2.2--2.4), the two unknowns
+$B_b$ and $k$ were set to their nominal guesses (see Table~\ref{tab:params}); once
+measured experimentally (Section~\ref{sec:estimation}), the same model was re-run with the
+updated values.
+
+% ============================================================ %
+\subsection{PID Position Controller (Tasks~2.2 and 3.3)}
+% ============================================================ %
+
+\subsubsection*{Frequency-domain synthesis}
+
+A PID with real derivative filter was adopted to regulate the collocated output~$\thh$:
+\begin{equation}
+    C(s) = K_P\!\left(1 + \frac{1}{T_I s} + \frac{T_D\,s}{T_L\,s + 1}\right),
+    \label{eq:pid}
+\end{equation}
+with the derivative filter bandwidth chosen as $1/T_L \approx 10\,\wgc$ to attenuate
+high-frequency noise while preserving adequate phase contribution near crossover.
+An integrator anti-windup back-calculation scheme was included; the reset time constant
+was set to $T_W = t_{s,5\%}/5$ (anti-windup gain $K_W = 1/T_W$).
+
+The desired closed-loop transient — settling time $t_{s,5\%} \leq 0.85\,\si{s}$ and
+overshoot $M_p \leq 30\,\%$ — fixes a target gain crossover frequency $\wgc$ and
+a minimum phase margin.  Under the constraint $T_I/T_D = 4$, the three free parameters
+$K_P$, $T_I$, $T_D$ were obtained by imposing the desired magnitude and phase conditions
+at $\wgc$ on the loop transfer function $L(s) = C(s)\,P_{u\to\thh}(s)$.
+The resulting values are collected in Table~\ref{tab:pid_params_sim}.
+
+\begin{table}[H]
+\centering
+\caption{PID parameters obtained during the simulation phase (tentative $k$, $B_b$).}
+\label{tab:pid_params_sim}
+\begin{tabular}{cccccc}
+\toprule
+$K_P$ & $T_I$~[s] & $T_D$~[s] & $T_L$~[s] & $T_W$~[s] & $\wgc$~[rad/s] \\
+\midrule
+\texttt{[---]} & \texttt{[---]} & \texttt{[---]} & \texttt{[---]} & \texttt{[---]} & \texttt{[---]} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsubsection*{Simulation results}
+
+% [TODO] Replace placeholder figures with your actual plots.
+% Each figure should show: time axis [s], angle axis [deg], reference line, ts,5% band.
+% Use solid/dashed to distinguish with/without AW; add a legend.
+
+\begin{figure}[H]
+    \centering
+    % \includegraphics[width=0.90\textwidth]{figures/pid_aw_50deg_sim.pdf}
+    \caption{Simulated hub-position response to a $50\,\si{\degree}$ step command.
+             Solid line: PID with back-calculation anti-windup active.
+             Dashed line: integrator unclamped (no anti-windup).
+             Tentative elastic-joint parameters.}
+    \label{fig:pid_aw_50_sim}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    % \includegraphics[width=0.90\textwidth]{figures/pid_aw_120deg_sim.pdf}
+    \caption{Same controller, $120\,\si{\degree}$ step command. The divergence between the
+             two curves grows with reference amplitude because a larger step drives the
+             integrator further into saturation, making windup more severe.}
+    \label{fig:pid_aw_120_sim}
+\end{figure}
+
+\begin{table}[H]
+\centering
+\caption{Transient performance indices from simulation: effect of the anti-windup mechanism.}
+\label{tab:pid_perf_sim}
+\begin{tabular}{llcc}
+\toprule
+Reference & Anti-windup & $t_{s,5\%}$~[s] & $M_p$~[\%] \\
+\midrule
+$50\,\si{\degree}$  & enabled  & \texttt{[---]} & \texttt{[---]} \\
+$50\,\si{\degree}$  & disabled & \texttt{[---]} & \texttt{[---]} \\
+$120\,\si{\degree}$ & enabled  & \texttt{[---]} & \texttt{[---]} \\
+$120\,\si{\degree}$ & disabled & \texttt{[---]} & \texttt{[---]} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+% [TODO] Comment: quantify the improvement brought by anti-windup for the large step.
+% Explain the mechanism: during saturation the integrator accumulates excess error;
+% without clamping, this produces a large overshoot upon exit from saturation.
+
+\subsubsection*{Redesign with measured joint parameters and experimental validation}
+
+Once $\hat{k}$ and $\hat{B}_b$ became available from Section~\ref{sec:estimation}, the
+loop-shaping procedure was repeated on the updated plant model.  The revised parameters
+are listed in Table~\ref{tab:pid_params_exp}; Figure~\ref{fig:pid_exp_vs_sim} overlays
+the corresponding simulation trace with the response acquired on the physical bench.
+
+\begin{table}[H]
+\centering
+\caption{Revised PID parameters after substituting experimentally identified $\hat{k}$
+         and $\hat{B}_b$.}
+\label{tab:pid_params_exp}
+\begin{tabular}{cccccc}
+\toprule
+$K_P$ & $T_I$~[s] & $T_D$~[s] & $T_L$~[s] & $T_W$~[s] & $\wgc$~[rad/s] \\
+\midrule
+\texttt{[---]} & \texttt{[---]} & \texttt{[---]} & \texttt{[---]} & \texttt{[---]} & \texttt{[---]} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{figure}[H]
+    \centering
+    % \includegraphics[width=0.90\textwidth]{figures/pid_exp_vs_sim.pdf}
+    \caption{Hub-position step response ($50\,\si{\degree}$): numerical simulation with
+             identified parameters (dashed) against physical-plant measurement (solid),
+             revised PID with anti-windup.}
+    \label{fig:pid_exp_vs_sim}
+\end{figure}
+
+\begin{table}[H]
+\centering
+\caption{PID closed-loop performance: numerical model vs.\ physical experiment.}
+\label{tab:pid_perf_exp}
+\begin{tabular}{lcc}
+\toprule
+& $t_{s,5\%}$~[s] & $M_p$~[\%] \\
+\midrule
+Simulation   & \texttt{[---]} & \texttt{[---]} \\
+Experimental & \texttt{[---]} & \texttt{[---]} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+% [TODO] Discuss residual discrepancies (nonlinear friction, model order reduction, etc.).
+
+% ============================================================ %
+\subsection{Elastic Joint Parameter Identification (Task~3.2)}
+\label{sec:estimation}
+% ============================================================ %
+
+With the hub shaft locked by a mechanical stop, the beam executes a damped oscillation
+governed solely by its own inertia $J_b$, its viscous damping $B_b$, and the joint
+restoring torque.  The deflection angle therefore satisfies
+\begin{equation}
+    J_b\,\ddot{\thd} + B_b\,\dot{\thd} + k\,\thd = 0,
+    \label{eq:free_osc}
+\end{equation}
+a second-order underdamped oscillator with undamped natural frequency
+$\wn = \sqrt{k/J_b}$ and damping ratio $\delta = B_b/(2\sqrt{J_b\,k})$.
+
+A free-oscillation test was performed by manually deflecting the beam to
+$\thd(0) \approx \texttt{[---]}\,\si{\degree}$ (kept below $20\,\si{\degree}$ to remain
+within the linear spring regime) and releasing it.  The decaying signal was recorded at
+sampling period $T_s = 1\,\si{ms}$.
+
+The two unknown parameters were extracted by the logarithmic-decrement method: the
+$M$~successive peak magnitudes $\{|\thd(t_k)|\}$ satisfy
+$\log|\thd(t_k)| = -k\,\xi + b$, where $\xi = \delta\pi/\sqrt{1-\delta^2}$ is the
+logarithmic decrement.  A least-squares line fit on the
+$(k,\,\log|\thd(t_k)|)$ plane yields $\hat{\xi}$ and, through the inverse relation
+$\hat{\delta} = \hat{\xi}/\sqrt{\pi^2 + \hat{\xi}^2}$, the damping ratio.
+The oscillation frequency~$\hat{\omega}$ was averaged across all successive
+peak-to-peak intervals; the natural frequency follows as
+$\hat{\wn} = \hat{\omega}/\sqrt{1-\hat{\delta}^2}$.
+
+The final estimates and the derived physical parameters are:
+\begin{equation}
+    \hat{\wn} = \texttt{[---]}\;\si{rad/s},\quad
+    \hat{\delta} = \texttt{[---]},\quad
+    \hat{k} = J_b\,\hat{\wn}^2 = \texttt{[---]}\;\si{N.m/rad},\quad
+    \hat{B}_b = 2\,J_b\,\hat{\delta}\,\hat{\wn} = \texttt{[---]}\;\si{N.m.s/rad}.
+    \label{eq:estimates}
+\end{equation}
+
+\begin{figure}[H]
+    \centering
+    % \includegraphics[width=0.85\textwidth]{figures/free_response_fit.pdf}
+    \caption{Recorded free-oscillation signal $\thd(t)$ with the hub locked (solid line),
+             overlaid with the fitted exponential amplitude envelope
+             $\pm\hat{A}\,e^{-\hat{\delta}\hat{\wn}\,t}$ (dashed lines).}
+    \label{fig:free_resp}
+\end{figure}
+
+% ============================================================ %
+\subsection{State-Space Control via Eigenvalue Assignment (Tasks~2.3 and 3.4)}
+% ============================================================ %
+
+\subsubsection*{Pole-placement synthesis}
+
+For state-space design the plant is represented by~\eqref{eq:ss} with the four-component
+state $\vect{x}'$.  Hub and beam velocities are not directly measured; they are
+reconstructed by filtering the position signals through a second-order high-pass network:
+\begin{equation}
+    H_1(s) = \frac{\wc^2\,s}{s^2 + \sqrt{2}\,\wc\,s + \wc^2},
+    \qquad \wc = 2\pi\cdot 50\;\si{rad/s},
+    \label{eq:hpf}
+\end{equation}
+which approximates differentiation below $\wc$ while limiting noise amplification above it.
+
+The desired closed-loop behaviour ($t_{s,5\%} \le 0.85\,\si{s}$, $M_p \le 30\,\%$)
+maps to a dominant second-order pair with
+\begin{equation}
+    \wn = \frac{3}{\delta\,t_{s,5\%}} = \texttt{[---]}\;\si{rad/s},\qquad
+    \delta = \frac{\ln(1/M_p)}{\sqrt{\pi^2 + \ln^2(1/M_p)}} = \texttt{[---]}.
+    \label{eq:wn_delta}
+\end{equation}
+The auxiliary angle $\phi = \arctan\!\bigl(\sqrt{1-\delta^2}/\delta\bigr)$ defines the
+target sector.  Since the model order is four, two additional eigenvalues are placed at
+$\omega_n\,e^{j(-\pi\pm\phi/2)}$, which lie further to the left and therefore decay faster
+than the dominant pair:
+\begin{equation}
+    \lambda_{c,\{1,2\}} = \wn\,e^{j(-\pi\pm\phi)},\qquad
+    \lambda_{c,\{3,4\}} = \wn\,e^{j(-\pi\pm\phi/2)}.
+    \label{eq:eigenvalues}
+\end{equation}
+
+The state feedback vector $\vect{K}\in\mathbb{R}^{1\times4}$ was computed via the MATLAB
+\texttt{place} function applied to the pair $(A',\,B')$:
+\begin{equation}
+    \vect{K} = \bigl[\;\texttt{[---]}\;\;\texttt{[---]}\;\;\texttt{[---]}\;\;\texttt{[---]}\;\bigr].
+\end{equation}
+
+\subsubsection*{Numerical and experimental results}
+
+\begin{figure}[H]
+    \centering
+    % \includegraphics[width=0.90\textwidth]{figures/ss_eigen_50deg.pdf}
+    \caption{Hub-position step response ($50\,\si{\degree}$) with the pole-placement
+             regulator (nominal tracking): simulation (dashed) vs.\ physical measurement
+             (solid).  Identified joint parameters.}
+    \label{fig:ss_eigen_50}
+\end{figure}
+
+\begin{table}[H]
+\centering
+\caption{Pole-placement controller: transient performance, simulation vs.\ experiment.}
+\label{tab:ss_eigen_perf}
+\begin{tabular}{lcc}
+\toprule
+& $t_{s,5\%}$~[s] & $M_p$~[\%] \\
+\midrule
+Simulation   & \texttt{[---]} & \texttt{[---]} \\
+Experimental & \texttt{[---]} & \texttt{[---]} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+% [TODO] Optional: report the integral-action extension (Tasks 2.3.3-4)
+%        for robust rejection of constant load torques.
+
+% ============================================================ %
+\subsection{State-Space Control via LQR Optimisation (Tasks~2.4 and 3.5)}
+% ============================================================ %
+
+\subsubsection*{Design based on the Symmetric Root Locus (Task~2.4.1)}
+
+The first LQR formulation penalises only the hub-position error and the control voltage:
+\begin{equation}
+    J = \int_0^{+\infty} \thh^2(t) + r\,u^2(t)\;\mathrm{d}t, \qquad r > 0.
+    \label{eq:cost_srl}
+\end{equation}
+Rather than guessing $r$ by trial and error, the scalar weight was chosen graphically
+by plotting the Symmetric Root Locus (SRL) of the loop $G(-s)G(s)$, where $G(s)$ is the
+transfer function from $u$ to $\thh$ of the reduced model~\eqref{eq:ss}.  The SRL reveals
+how the optimal closed-loop eigenvalues migrate as $1/r$ increases from zero; the admissible
+region in the left-half plane — $\mathrm{Re}(\lambda) \le -3/t_{s,5\%}$ and phase angle
+within the sector bounded by $\pm\phi$ — provides a geometric selection criterion.
+
+\begin{figure}[H]
+    \centering
+    % \subfloat[Full SRL]{%
+    %   \includegraphics[width=0.47\textwidth]{figures/srl_full.pdf}}
+    % \hfill
+    % \subfloat[Selected eigenvalue locations]{%
+    %   \includegraphics[width=0.47\textwidth]{figures/srl_selected.pdf}}
+    \caption{Symmetric Root Locus for the cost function~\eqref{eq:cost_srl}.
+             Left panel: full locus with admissible region (shaded). Right panel:
+             closed-loop eigenvalue locations (squares) corresponding to the chosen
+             $r = \texttt{[---]}$.}
+    \label{fig:srl}
+\end{figure}
+
+The selected weight $r = \texttt{[---]}$ leads to
+\begin{equation}
+    \vect{K}_\mathrm{SRL} = \bigl[\;\texttt{[---]}\;\;\texttt{[---]}\;\;\texttt{[---]}\;\;\texttt{[---]}\;\bigr].
+\end{equation}
+
+\subsubsection*{Design based on Bryson's normalisation rule (Task~2.4.3)}
+
+For the second LQR variant the cost is extended to all state components:
+\begin{equation}
+    J = \int_0^{+\infty} \vect{x}^{\prime T} Q\,\vect{x}' + r\,u^2\;\mathrm{d}t.
+    \label{eq:cost_bryson}
+\end{equation}
+The diagonal weight matrix $Q$ was initialised by Bryson's normalisation: each entry
+$q_{ii} = 1/\bar{x}_i^2$, where $\bar{x}_i$ is the largest acceptable deviation of the
+$i$-th state component.  For a $50\,\si{\degree}$ reference the tolerances are set as
+$\bar{\thh} = 0.3 \times 50 \times (\pi/180)$, $\bar{\thd} = \pi/36$, and the
+velocity weights were left at zero (fast velocity errors are inherently damped).
+The input weight follows as $r = 1/\bar{u}^2$ with $\bar{u} = 10\,\si{V}$:
+\begin{equation}
+    Q = \mathrm{diag}\!\left(\frac{1}{\bar{\thh}^2},\;\frac{1}{\bar{\thd}^2},\;0,\;0\right),
+    \qquad r = 10^{-2}.
+    \label{eq:bryson_weights}
+\end{equation}
+The optimal feedback vector is
+\begin{equation}
+    \vect{K}_\mathrm{Bry} = \bigl[\;\texttt{[---]}\;\;\texttt{[---]}\;\;\texttt{[---]}\;\;\texttt{[---]}\;\bigr].
+\end{equation}
+
+\subsubsection*{Simulation and experimental comparison}
+
+\begin{figure}[H]
+    \centering
+    % \includegraphics[width=0.90\textwidth]{figures/lqr_compare_50deg.pdf}
+    \caption{Hub-position step response ($50\,\si{\degree}$): SRL-based LQR (blue) and
+             Bryson-normalised LQR (red) under simulation (dashed) and physical test
+             (solid).  Both runs use identified joint parameters.}
+    \label{fig:lqr_compare}
+\end{figure}
+
+\begin{table}[H]
+\centering
+\caption{LQR step-response performance ($50\,\si{\degree}$): both designs, simulation
+         vs.\ experiment.}
+\label{tab:lqr_perf}
+\begin{tabular}{llcc}
+\toprule
+Controller & & $t_{s,5\%}$~[s] & $M_p$~[\%] \\
+\midrule
+$\vect{K}_\mathrm{SRL}$  & Simulation   & \texttt{[---]} & \texttt{[---]} \\
+                          & Experimental & \texttt{[---]} & \texttt{[---]} \\
+\midrule
+$\vect{K}_\mathrm{Bry}$  & Simulation   & \texttt{[---]} & \texttt{[---]} \\
+                          & Experimental & \texttt{[---]} & \texttt{[---]} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+% [TODO] Compare the two LQR designs: discuss differences in settling time,
+%        overshoot, and beam-deflection amplitude (thd).
+%        Notably: does penalising thd in Bryson's Q reduce resonant oscillations?
+% [TODO] If implemented, add FS-LQR results (Tasks 2.4.9-10) here or as a separate subsection.
+
+% ============================================================ %
+\section*{Summary and Conclusions}
+% ============================================================ %
+
+% [TODO] 3-6 sentences synthesising the key outcomes:
+%   - Which controllers met the specs? By how much?
+%   - Main gap between simulation and physical experiment, and likely causes.
+%   - Comparative assessment of PID vs. pole placement vs. LQR for this plant.
+
+% ============================================================ %
+\appendix
+
+\section{MATLAB Code}
+\label{app:code}
+
+\begin{lstlisting}
+\end{lstlisting}
+
+\begin{lstlisting}
+\end{lstlisting}
+
+\begin{lstlisting}
+\end{lstlisting}
+
+% -------------------------------------------------------------------------------- %
+\appendix
+\section{Appendix}
+\subsection{Matlab code}
+\subsection{Data sheet}
+\subsection{Detailed calculations for PID design}
+
+\label{LastPage}
+\end{document}
